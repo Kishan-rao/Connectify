@@ -1,0 +1,43 @@
+/* NavBar */
+.navbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(26, 29, 39, 0.88);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  height: 60px;
+}
+
+.nav-brand {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary) !important;
+  display: flex; align-items: center; gap: 0.4rem;
+  -webkit-text-fill-color: var(--text-primary);
+}
+.nav-brand .logo-icon { font-size: 1.3rem; }
+
+.nav-links { display: flex; align-items: center; gap: 1.25rem; }
+
+.nav-link {
+  color: var(--text-secondary) !important;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color var(--transition);
+}
+.nav-link:hover { color: var(--text-primary) !important; }
+
+.btn-logout {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+.btn-logout:hover { border-color: var(--danger); color: var(--danger); }

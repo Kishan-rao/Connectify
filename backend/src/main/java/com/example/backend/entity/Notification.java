@@ -31,7 +31,8 @@ public class Notification {
     private UUID referenceId;
 
     @Column(nullable = false)
-    private boolean isRead = false;
+    @Builder.Default
+    private boolean read = false;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

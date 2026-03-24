@@ -1,0 +1,87 @@
+/* Friends page */
+.friends-container {
+  max-width: 560px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.friends-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+.friends-card h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.badge {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+}
+
+.add-friend-form { display: flex; gap: 0.75rem; }
+.add-friend-form input {
+  flex: 1;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 14px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+.add-friend-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.friend-message {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--success);
+}
+
+.friend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.friend-row:last-child { border-bottom: none; }
+.friend-row span { flex: 1; font-size: 0.9rem; }
+
+.friend-actions { display: flex; gap: 0.5rem; }
+.btn-accept {
+  background: var(--success); color: #fff;
+  border: none; border-radius: 6px;
+  padding: 5px 12px; font-size: 0.82rem; cursor: pointer;
+  transition: opacity var(--transition);
+}
+.btn-accept:hover { opacity: 0.85; }
+.btn-reject {
+  background: transparent; color: var(--danger);
+  border: 1px solid var(--danger); border-radius: 6px;
+  padding: 5px 12px; font-size: 0.82rem; cursor: pointer;
+  transition: background var(--transition);
+}
+.btn-reject:hover { background: rgba(224,92,92,0.1); }
+.btn-add {
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--accent); border-radius: 6px;
+  padding: 5px 12px; font-size: 0.82rem; cursor: pointer;
+  transition: background var(--transition);
+}
+.btn-add:hover { background: var(--accent-glow); }
+.empty-text { color: var(--text-muted); font-size: 0.88rem; }
