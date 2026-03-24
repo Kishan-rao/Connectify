@@ -11,6 +11,7 @@ import com.example.backend.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,11 +25,15 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public AuthResponse register(RegisterRequest request) {
+
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("Username '" + request.getUsername() + "' is already taken");
+            throw new IllegalArgumentException(
+                    "Username '" + request.getUsername() + "' is already taken");
         }
+
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("An account with this email already exists");
+            throw new IllegalArgumentException(
+                    "An account with this email already exists");
         }
 
         User user = User.builder()
@@ -39,7 +44,6 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
-
         CustomUserDetails userDetails = new CustomUserDetails(user);
         String token = jwtService.generateToken(userDetails);
 
@@ -52,13 +56,23 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        // AuthenticationManager triggers CustomUserDetailsService + PasswordEncoder
-        var authentication = authenticationManager.authenticate(
+
+        Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsernameOrEmail(),
                         request.getPassword()));
 
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new IllegalStateException("Authentication failed: no principal returned");
+        }
+
+        Object principal = authentication.getPrincipal();
+
+        if (!(principal instanceof CustomUserDetails userDetails)) {
+            throw new IllegalStateException(
+                    "Unexpected principal type: " + principal.getClass().getName());
+        }
+
         String token = jwtService.generateToken(userDetails);
 
         return AuthResponse.builder()
