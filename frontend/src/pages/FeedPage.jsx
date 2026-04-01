@@ -42,7 +42,22 @@ function CreatePostForm({ onPostCreated }) {
   );
 }
 
+function FeedExplanationPanel({ explanation, isOpen, onClose }) {
+  if (!explanation) return null;
+  return (
+    <div className={`feed-explanation-panel ${isOpen ? 'open' : ''}`}>
+      <div className="feed-explanation-inner">
+        <span className="feed-explanation-icon">💡</span>
+        <p className="feed-explanation-text">{explanation}</p>
+        <button className="feed-explanation-close" onClick={onClose} aria-label="Close explanation">×</button>
+      </div>
+    </div>
+  );
+}
+
 function PostCard({ post }) {
+  const [explanationOpen, setExplanationOpen] = useState(false);
+
   return (
     <div className="post-card">
       <div className="post-header">
@@ -57,6 +72,24 @@ function PostCard({ post }) {
         </div>
       </div>
       <p className="post-content">{post.content}</p>
+
+      {post.feedExplanation && (
+        <>
+          <div className="post-card-divider" />
+          <button
+            className="why-seeing-this-btn"
+            onClick={() => setExplanationOpen(prev => !prev)}
+            aria-expanded={explanationOpen}
+          >
+            ✨ Why am I seeing this?
+          </button>
+          <FeedExplanationPanel
+            explanation={post.feedExplanation}
+            isOpen={explanationOpen}
+            onClose={() => setExplanationOpen(false)}
+          />
+        </>
+      )}
     </div>
   );
 }

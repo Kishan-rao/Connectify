@@ -1,36 +1,48 @@
-/* Feed */
+/* ============================================================
+   Feed Layout
+   ============================================================ */
 .feed-container {
-  max-width: 620px;
+  max-width: 680px;
   margin: 2rem auto;
   padding: 0 1rem;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
+/* ============================================================
+   Create Post Card
+   ============================================================ */
 .create-post-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: rgba(24, 24, 38, 0.85);
+  border: 1px solid rgba(124, 58, 237, 0.18);
   border-radius: var(--radius);
   padding: 1.25rem;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 4px 40px rgba(124, 58, 237, 0.06);
+  transition: border-color 0.2s ease;
+}
+.create-post-card:focus-within {
+  border-color: rgba(124, 58, 237, 0.45);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08), 0 4px 40px rgba(124, 58, 237, 0.08);
 }
 .create-post-card textarea {
   width: 100%;
-  background: var(--bg-base);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: rgba(13, 13, 24, 0.7);
+  border: 1px solid rgba(71, 71, 84, 0.5);
+  border-radius: 10px;
   padding: 10px 14px;
   color: var(--text-primary);
   font-size: 0.95rem;
   font-family: inherit;
   resize: none;
-  transition: border-color var(--transition);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .create-post-card textarea:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+  border-color: #7C3AED;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
 }
 .post-actions {
   display: flex;
@@ -40,28 +52,146 @@
 }
 .char-count { color: var(--text-muted); font-size: 0.8rem; }
 
-/* Post Card */
+/* ============================================================
+   Post Card — Glassmorphism (Stitch-designed)
+   ============================================================ */
 .post-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: rgba(24, 24, 38, 0.75);
+  border: 1px solid rgba(71, 71, 84, 0.35);
   border-radius: var(--radius);
   padding: 1.25rem;
-  transition: border-color var(--transition);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
-.post-card:hover { border-color: var(--accent); }
-.post-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
-.post-author { font-weight: 600; font-size: 0.9rem; }
-.post-time { display: block; color: var(--text-muted); font-size: 0.78rem; }
-.post-content { color: var(--text-primary); line-height: 1.65; }
+.post-card:hover {
+  border-color: rgba(124, 58, 237, 0.4);
+  box-shadow: 0 8px 48px rgba(124, 58, 237, 0.1), 0 0 0 0.5px rgba(189, 157, 255, 0.15);
+  transform: translateY(-1px);
+}
 
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.post-author { font-weight: 600; font-size: 0.9rem; }
+.post-time { display: block; color: var(--text-muted); font-size: 0.78rem; margin-top: 0.1rem; }
+.post-content { color: var(--text-primary); line-height: 1.7; font-size: 0.95rem; }
+
+/* ============================================================
+   Post Card Divider
+   ============================================================ */
+.post-card-divider {
+  height: 1px;
+  background: rgba(71, 71, 84, 0.3);
+  margin: 1rem 0 0.6rem;
+}
+
+/* ============================================================
+   "Why am I seeing this?" Trigger Button
+   ============================================================ */
+.why-seeing-this-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: #a67aff;
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: color 0.2s ease, opacity 0.2s ease;
+  opacity: 0.7;
+}
+.why-seeing-this-btn:hover {
+  color: #bd9dff;
+  opacity: 1;
+}
+
+/* ============================================================
+   Feed Explanation Panel — Expandable Accordion
+   ============================================================ */
+.feed-explanation-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.28s ease,
+              margin-top 0.2s ease;
+  opacity: 0;
+  margin-top: 0;
+}
+.feed-explanation-panel.open {
+  max-height: 120px;
+  opacity: 1;
+  margin-top: 0.6rem;
+}
+
+.feed-explanation-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  background: rgba(124, 58, 237, 0.08);
+  border-left: 2px solid rgba(124, 58, 237, 0.55);
+  border-radius: 0 8px 8px 0;
+  position: relative;
+}
+
+.feed-explanation-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.feed-explanation-text {
+  margin: 0;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: #aba9b9;
+  line-height: 1.55;
+  flex: 1;
+}
+
+.feed-explanation-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #757482;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+  align-self: flex-start;
+}
+.feed-explanation-close:hover {
+  color: #bd9dff;
+}
+
+/* ============================================================
+   Load More Button
+   ============================================================ */
 .btn-load-more {
   align-self: center;
   background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  border-radius: 8px;
-  padding: 10px 24px;
+  border: 1px solid rgba(124, 58, 237, 0.4);
+  color: #a67aff;
+  border-radius: 50px;
+  padding: 10px 32px;
   cursor: pointer;
-  transition: border-color var(--transition), color var(--transition);
+  font-size: 0.88rem;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  transition: border-color 0.2s ease, color 0.2s ease,
+              background 0.2s ease, box-shadow 0.2s ease;
 }
-.btn-load-more:hover { border-color: var(--accent); color: var(--accent); }
+.btn-load-more:hover {
+  border-color: #7C3AED;
+  color: #bd9dff;
+  background: rgba(124, 58, 237, 0.08);
+  box-shadow: 0 0 16px rgba(124, 58, 237, 0.15);
+}

@@ -18,4 +18,5 @@ public class PostResponse {
     private String imageUrl;
     private LocalDateTime createdAt;
     private UserSummaryDto author;
+    private String feedExplanation;
 }
