@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,6 +26,7 @@ public class FriendshipService {
     private final UserRepository userRepository;
     private final UserService userService;
 
+    @SuppressWarnings("null")
     public FriendshipResponse sendRequest(Principal principal, FriendRequestDto dto) {
         User requester = userService.resolveUser(principal.getName());
         User addressee = userRepository.findByUsername(dto.getAddresseeUsername())
@@ -41,19 +43,26 @@ public class FriendshipService {
                 .addressee(addressee)
                 .status(FriendshipStatus.PENDING)
                 .build();
-        return toResponse(friendshipRepository.save(friendship));
+        Friendship savedFriendship = Objects.requireNonNull(
+                friendshipRepository.save(friendship),
+                "Saved friendship must not be null");
+        return toResponse(savedFriendship);
     }
 
     public FriendshipResponse respondToRequest(Principal principal, UUID friendshipId, boolean accept) {
         User currentUser = userService.resolveUser(principal.getName());
-        Friendship friendship = friendshipRepository.findById(friendshipId)
+        UUID requiredFriendshipId = Objects.requireNonNull(friendshipId, "friendshipId must not be null");
+        Friendship friendship = friendshipRepository.findById(requiredFriendshipId)
                 .orElseThrow(() -> new IllegalArgumentException("Friendship not found."));
 
         if (!friendship.getAddressee().getId().equals(currentUser.getId()))
             throw new IllegalArgumentException("You are not the recipient of this request.");
 
         friendship.setStatus(accept ? FriendshipStatus.ACCEPTED : FriendshipStatus.REJECTED);
-        return toResponse(friendshipRepository.save(friendship));
+        Friendship savedFriendship = Objects.requireNonNull(
+                friendshipRepository.save(friendship),
+                "Saved friendship must not be null");
+        return toResponse(savedFriendship);
     }
 
     public List<UserSummaryDto> listFriends(Principal principal) {

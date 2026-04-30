@@ -15,6 +15,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -24,6 +26,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
+    @SuppressWarnings("null")
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -43,15 +46,15 @@ public class AuthService {
                 .role(Role.USER)
                 .build();
 
-        userRepository.save(user);
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        User savedUser = Objects.requireNonNull(userRepository.save(user), "Saved user must not be null");
+        CustomUserDetails userDetails = new CustomUserDetails(savedUser);
         String token = jwtService.generateToken(userDetails);
 
         return AuthResponse.builder()
                 .token(token)
-                .userId(user.getId())
-                .username(user.getUsername())
-                .role(user.getRole().name())
+                .userId(savedUser.getId())
+                .username(savedUser.getUsername())
+                .role(savedUser.getRole().name())
                 .build();
     }
 

@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -34,6 +35,7 @@ public class PostService {
     private final UserService userService;
     private final UserRepository userRepository;
 
+    @SuppressWarnings("null")
     public PostResponse createPost(Principal principal, PostCreateRequest request) {
         User user = userService.resolveUser(principal.getName());
         Post post = Post.builder()
@@ -41,12 +43,14 @@ public class PostService {
                 .content(request.getContent())
                 .imageUrl(request.getImageUrl())
                 .build();
-        return toResponse(postRepository.save(post), user);
+        Post savedPost = Objects.requireNonNull(postRepository.save(post), "Saved post must not be null");
+        return toResponse(savedPost, user);
     }
 
     public void deletePost(Principal principal, UUID postId) {
         User user = userService.resolveUser(principal.getName());
-        Post post = postRepository.findById(postId)
+        UUID requiredPostId = Objects.requireNonNull(postId, "postId must not be null");
+        Post post = postRepository.findById(requiredPostId)
                 .orElseThrow(() -> new IllegalArgumentException("Post not found."));
         if (!post.getUser().getId().equals(user.getId()))
             throw new AccessDeniedException("You can only delete your own posts.");
