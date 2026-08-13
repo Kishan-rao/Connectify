@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: connectify-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: connectify
+      POSTGRES_USER: connectify
+      POSTGRES_PASSWORD: connectify
+    ports:
+      - "5432:5432"
+    volumes:
+      - connectify-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  connectify-postgres-data:
