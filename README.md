@@ -1,9 +1,9 @@
-# Social Network (Web App)
+# Connectify
 
-This repository contains a full-stack social networking web application:
+A full-stack social networking web application:
 
-- `frontend`: React + Vite client
-- `backend`: Spring Boot REST API with JWT auth, WebSocket support, and JPA
+- `frontend` — React + Vite client
+- `backend` — Spring Boot REST API with JWT auth and JPA
 
 ## Tech Stack
 
@@ -24,9 +24,29 @@ This repository contains a full-stack social networking web application:
 ## Project Structure
 
 ```text
-Social-Network-master/
-  backend/      # Spring Boot API
-  frontend/     # React app
+Connectify/
+├── backend/                    # Spring Boot API
+│   ├── src/main/java/.../      # Controllers, services, entities, security
+│   ├── src/main/resources/     # application.properties
+│   ├── src/test/               # Integration tests (H2)
+│   ├── gradle/wrapper/         # Gradle wrapper
+│   ├── build.gradle
+│   └── settings.gradle
+├── frontend/                   # React + Vite app
+│   ├── public/                 # Static assets (favicon)
+│   ├── src/
+│   │   ├── api/                # Axios client
+│   │   ├── components/         # Shared UI components
+│   │   ├── context/            # Auth context
+│   │   ├── pages/              # Route pages
+│   │   └── styles/             # Page-level CSS
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+├── docker-compose.yml          # Local PostgreSQL
+├── .env.example                # Environment variable template
+├── LICENSE
+└── README.md
 ```
 
 ## Prerequisites
@@ -47,7 +67,7 @@ names that match the backend defaults:
 docker compose up -d postgres
 ```
 
-It exposes PostgreSQL at `localhost:5432` with:
+It exposes PostgreSQL at `localhost:5433` with:
 
 - Database: `connectify`
 - Username: `connectify`
@@ -64,12 +84,10 @@ $env:DB_USERNAME = "connectify"
 $env:DB_PASSWORD = "your-secure-password"
 ```
 
-Alternatively, create an uncommitted `.env` file in the repository root:
+Alternatively, copy `.env.example` to `.env` in the repository root and adjust the values:
 
-```properties
-DB_URL=jdbc:postgresql://localhost:5432/connectify
-DB_USERNAME=connectify
-DB_PASSWORD=your-secure-password
+```bash
+cp .env.example .env
 ```
 
 Do not wrap the password in quotes; quotes become part of the password value.
@@ -104,7 +122,7 @@ Frontend runs on the Vite dev URL (typically `http://localhost:5173`) and calls 
 
 ## Database Configuration
 
-The backend uses PostgreSQL by default at `jdbc:postgresql://localhost:5432/connectify`.
+The backend uses PostgreSQL by default at `jdbc:postgresql://localhost:5433/connectify`.
 Datasource settings read from `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`, with local Docker-friendly defaults. Do not use the default password outside local development.
 
 Hibernate uses `ddl-auto=update` for local development. Tests use an isolated H2 in-memory database via `backend/src/test/resources/application.properties`.
@@ -140,6 +158,3 @@ Changing `POSTGRES_PASSWORD` in `docker-compose.yml` does not update an existing
 - JWT-based authentication is enabled.
 - Replace `app.jwt.secret` with a secure key before any production deployment.
 
-## Notes
-
-- The folder `Simplified_Social_Networking_System` is a legacy standalone Java version and is not required for running the current web app (`frontend` + `backend`).

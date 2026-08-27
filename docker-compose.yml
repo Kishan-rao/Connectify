@@ -6,9 +6,9 @@ services:
     environment:
       POSTGRES_DB: connectify
       POSTGRES_USER: connectify
-      POSTGRES_PASSWORD: connectify
+      POSTGRES_PASSWORD: CONNECTIFY
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - connectify-postgres-data:/var/lib/postgresql/data
 
