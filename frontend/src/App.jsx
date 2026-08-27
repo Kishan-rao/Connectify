@@ -6,6 +6,9 @@ import RegisterPage from './pages/RegisterPage';
 import FeedPage from './pages/FeedPage';
 import FriendsPage from './pages/FriendsPage';
 import ProfilePage from './pages/ProfilePage';
+import SearchPage from './pages/SearchPage';
+import GroupsPage from './pages/GroupsPage';
+import GroupDetailPage from './pages/GroupDetailPage';
 import './index.css';
 
 export default function App() {
@@ -19,6 +22,9 @@ export default function App() {
 
           {/* Protected routes */}
           <Route path="/feed" element={<PrivateRoute><FeedPage /></PrivateRoute>} />
+          <Route path="/search" element={<PrivateRoute><SearchPage /></PrivateRoute>} />
+          <Route path="/groups" element={<PrivateRoute><GroupsPage /></PrivateRoute>} />
+          <Route path="/groups/:id" element={<PrivateRoute><GroupDetailPage /></PrivateRoute>} />
           <Route path="/friends" element={<PrivateRoute><FriendsPage /></PrivateRoute>} />
           <Route path="/profile/:username" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
 

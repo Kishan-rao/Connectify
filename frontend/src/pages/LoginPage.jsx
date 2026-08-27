@@ -8,6 +8,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ usernameOrEmail: '', password: '' });
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +17,11 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await api.post('/api/auth/login', form);
+      const { data } = await api.post('/api/auth/login', {
+        usernameOrEmail: form.usernameOrEmail,
+        password: form.password,
+        rememberMe
+      });
       login(data.token, { userId: data.userId, username: data.username, role: data.role });
       navigate('/feed');
     } catch (err) {
@@ -35,28 +40,51 @@ export default function LoginPage() {
         </div>
         <p className="auth-subtitle">Welcome back! Sign in to continue.</p>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="auth-form" autoComplete="on">
           <div className="form-group">
-            <label>Username or Email</label>
+            <label htmlFor="usernameOrEmail">Username or Email</label>
             <input
+              id="usernameOrEmail"
+              name="username"
               type="text"
               placeholder="your_username"
+              autoComplete="username"
               value={form.usernameOrEmail}
               onChange={e => setForm({ ...form, usernameOrEmail: e.target.value })}
               required
             />
           </div>
+
           <div className="form-group">
-            <label>Password</label>
+            <label htmlFor="password">Password</label>
             <input
+              id="password"
+              name="password"
               type="password"
               placeholder="••••••••"
+              autoComplete="current-password"
               value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })}
               required
             />
           </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '-0.25rem', marginBottom: '0.25rem' }}>
+            <input
+              type="checkbox"
+              id="rememberMe"
+              name="rememberMe"
+              checked={rememberMe}
+              onChange={e => setRememberMe(e.target.checked)}
+              style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+            />
+            <label htmlFor="rememberMe" style={{ cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Remember me
+            </label>
+          </div>
+
           {error && <p className="auth-error">{error}</p>}
+
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>

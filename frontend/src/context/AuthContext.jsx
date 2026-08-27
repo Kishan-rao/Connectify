@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react';
+import api from '../api/axiosClient';
 
 const AuthContext = createContext(null);
 
@@ -14,10 +15,16 @@ export function AuthProvider({ children }) {
     setUser(userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
+  const logout = async () => {
+    try {
+      await api.post('/api/auth/logout');
+    } catch {
+      // ignore
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+    }
   };
 
   return (

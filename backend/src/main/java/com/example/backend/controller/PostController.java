@@ -1,8 +1,8 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.PagedResponse;
-import com.example.backend.dto.PostCreateRequest;
-import com.example.backend.dto.PostResponse;
+import com.example.backend.dto.*;
+import com.example.backend.service.CommentService;
+import com.example.backend.service.PostLikeService;
 import com.example.backend.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -18,6 +19,8 @@ import java.util.UUID;
 public class PostController {
 
     private final PostService postService;
+    private final PostLikeService postLikeService;
+    private final CommentService commentService;
 
     @PostMapping("/api/posts")
     public ResponseEntity<PostResponse> createPost(
@@ -47,4 +50,39 @@ public class PostController {
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(postService.getUserPosts(username, page, size));
     }
+
+    // ── Likes Endpoints ───────────────────────────────────────────────────────
+
+    @PostMapping("/api/posts/{id}/like")
+    public ResponseEntity<Void> likePost(Principal principal, @PathVariable UUID id) {
+        postLikeService.likePost(principal, id);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/api/posts/{id}/like")
+    public ResponseEntity<Void> unlikePost(Principal principal, @PathVariable UUID id) {
+        postLikeService.unlikePost(principal, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/api/posts/{id}/likes")
+    public ResponseEntity<List<UserSummaryDto>> getLikes(@PathVariable UUID id) {
+        return ResponseEntity.ok(postLikeService.getLikes(id));
+    }
+
+    // ── Comments Endpoints ────────────────────────────────────────────────────
+
+    @GetMapping("/api/posts/{id}/comments")
+    public ResponseEntity<List<CommentResponse>> getComments(Principal principal, @PathVariable UUID id) {
+        return ResponseEntity.ok(commentService.getComments(principal, id));
+    }
+
+    @PostMapping("/api/posts/{id}/comments")
+    public ResponseEntity<CommentResponse> createComment(
+            Principal principal,
+            @PathVariable UUID id,
+            @Valid @RequestBody CommentCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(commentService.createComment(principal, id, request));
+    }
 }
+

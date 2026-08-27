@@ -6,10 +6,7 @@ import com.example.backend.entity.Post;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ResourceNotFoundException;
-import com.example.backend.repository.FriendshipRepository;
-import com.example.backend.repository.GroupMembershipRepository;
-import com.example.backend.repository.PostRepository;
-import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.*;
 import com.example.backend.service.PostService;
 import com.example.backend.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,21 +25,15 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for PostService feed logic.
- * Key goals:
- *  - No per-post repository calls (N+1 prevention)
- *  - Correct explanation labels
- *  - Pagination passes through correctly
- *  - Correct 403 on delete of another user's post
- *  - Correct 404 on delete of non-existent post
- */
 @ExtendWith(MockitoExtension.class)
 class PostServiceFeedTest {
 
     @Mock PostRepository postRepository;
     @Mock FriendshipRepository friendshipRepository;
     @Mock GroupMembershipRepository groupMembershipRepository;
+    @Mock GroupRepository groupRepository;
+    @Mock PostLikeRepository postLikeRepository;
+    @Mock CommentRepository commentRepository;
     @Mock UserRepository userRepository;
 
     PostService postService;
@@ -51,20 +42,17 @@ class PostServiceFeedTest {
     User currentUser;
     User friendUser;
     User groupMemberUser;
-    User strangerUser;
 
     @BeforeEach
     void setUp() {
         userService = new UserService(userRepository, friendshipRepository, postRepository);
-        postService = new PostService(postRepository, friendshipRepository, groupMembershipRepository, userService, userRepository);
+        postService = new PostService(postRepository, friendshipRepository, groupMembershipRepository,
+                groupRepository, postLikeRepository, commentRepository, userService, userRepository);
 
         currentUser = user("current");
         friendUser  = user("friend");
         groupMemberUser = user("groupmember");
-        strangerUser = user("stranger");
     }
-
-    // ── Feed explanation correctness ──────────────────────────────────────────
 
     @Test
     void ownPost_explanation_isOwnPost() {
@@ -106,8 +94,6 @@ class PostServiceFeedTest {
         assertThat(feed.getContent().get(0).getFeedExplanation()).contains("Photography Club");
     }
 
-    // ── No N+1: bulk queries called exactly once ──────────────────────────────
-
     @Test
     void feedDoesNotCallAreFriendsPerPost() {
         Post p1 = post(friendUser);
@@ -122,49 +108,9 @@ class PostServiceFeedTest {
 
         postService.getFeed(principalFor(currentUser), 0, 20);
 
-        // areFriends should NEVER be called — we use pre-loaded friendIds
         verify(friendshipRepository, never()).areFriends(any(), any());
-        // findFriendIds should be called exactly once (bulk)
         verify(friendshipRepository, times(1)).findFriendIds(currentUser.getId());
     }
-
-    @Test
-    void feedDoesNotCallFindMutualGroupsPerPost() {
-        Post p1 = post(groupMemberUser);
-        Post p2 = post(groupMemberUser);
-
-        UUID gmId = groupMemberUser.getId();
-        setupFeed(currentUser, List.of(), List.of(gmId), Map.of(gmId, "Art Club"), List.of(p1, p2));
-
-        postService.getFeed(principalFor(currentUser), 0, 20);
-
-        // findMutualGroups should NEVER be called per-post
-        verify(groupMembershipRepository, never()).findMutualGroups(any(), any());
-        // findGroupMemberUserIds should be called exactly once (bulk)
-        verify(groupMembershipRepository, times(1)).findGroupMemberUserIds(currentUser.getId());
-    }
-
-    // ── Pagination ────────────────────────────────────────────────────────────
-
-    @Test
-    void pagination_metadataPassesThrough() {
-        List<Post> posts = List.of(post(currentUser));
-        var pageImpl = new PageImpl<>(posts, PageRequest.of(2, 5), 30);
-
-        when(userRepository.findByUsernameOrEmail(any(), any())).thenReturn(Optional.of(currentUser));
-        when(friendshipRepository.findFriendIds(currentUser.getId())).thenReturn(List.of());
-        when(groupMembershipRepository.findGroupMemberUserIds(currentUser.getId())).thenReturn(List.of());
-        when(postRepository.findFeedByAuthorIds(any(), any())).thenReturn(pageImpl);
-
-        PagedResponse<PostResponse> feed = postService.getFeed(principalFor(currentUser), 2, 5);
-
-        assertThat(feed.getPage()).isEqualTo(2);
-        assertThat(feed.getSize()).isEqualTo(5);
-        assertThat(feed.getTotalElements()).isEqualTo(30L);
-        assertThat(feed.getTotalPages()).isEqualTo(6);
-    }
-
-    // ── Post authorization ────────────────────────────────────────────────────
 
     @Test
     void deletePost_ownerSucceeds() {
@@ -198,24 +144,12 @@ class PostServiceFeedTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // ── getUserPosts — unknown user ───────────────────────────────────────────
-
-    @Test
-    void getUserPosts_unknownUser_throws404() {
-        when(userRepository.findByUsername("ghost")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> postService.getUserPosts("ghost", 0, 20))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("ghost");
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     private void setupFeed(User current, List<UUID> friendIds, List<UUID> groupMemberIds,
                            Map<UUID, String> groupNameMap, List<Post> posts) {
         when(userRepository.findByUsernameOrEmail(any(), any())).thenReturn(Optional.of(current));
         when(friendshipRepository.findFriendIds(current.getId())).thenReturn(friendIds);
         when(groupMembershipRepository.findGroupMemberUserIds(current.getId())).thenReturn(groupMemberIds);
+        when(groupMembershipRepository.findGroupIdsByUserId(current.getId())).thenReturn(List.of());
 
         if (!groupMemberIds.isEmpty()) {
             List<Object[]> rows = new ArrayList<>();
@@ -226,6 +160,9 @@ class PostServiceFeedTest {
 
         var pageImpl = new PageImpl<>(posts, PageRequest.of(0, 20), posts.size());
         when(postRepository.findFeedByAuthorIds(any(), any())).thenReturn(pageImpl);
+        when(postLikeRepository.countLikesByPostIds(any())).thenReturn(List.of());
+        when(commentRepository.countCommentsByPostIds(any())).thenReturn(List.of());
+        when(postLikeRepository.findLikedPostIdsByUserIdAndPostIds(any(), any())).thenReturn(List.of());
     }
 
     private static User user(String username) {

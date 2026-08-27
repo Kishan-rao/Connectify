@@ -49,7 +49,7 @@ public class FriendshipController {
     }
 
     @GetMapping("/suggestions")
-    public ResponseEntity<List<UserSummaryDto>> getSuggestions(Principal principal) {
+    public ResponseEntity<List<com.example.backend.dto.FriendRecommendationDto>> getSuggestions(Principal principal) {
         return ResponseEntity.ok(friendshipService.getSuggestedFriends(principal));
     }
 }

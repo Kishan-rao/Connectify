@@ -1,16 +1,12 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.PagedResponse;
-import com.example.backend.dto.PostCreateRequest;
-import com.example.backend.dto.PostResponse;
-import com.example.backend.dto.UserSummaryDto;
+import com.example.backend.dto.*;
+import com.example.backend.entity.Group;
+import com.example.backend.entity.GroupType;
 import com.example.backend.entity.Post;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ResourceNotFoundException;
-import com.example.backend.repository.FriendshipRepository;
-import com.example.backend.repository.GroupMembershipRepository;
-import com.example.backend.repository.PostRepository;
-import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,24 +22,56 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@SuppressWarnings("null")
 public class PostService {
 
     private final PostRepository postRepository;
     private final FriendshipRepository friendshipRepository;
     private final GroupMembershipRepository groupMembershipRepository;
+    private final GroupRepository groupRepository;
+    private final PostLikeRepository postLikeRepository;
+    private final CommentRepository commentRepository;
     private final UserService userService;
     private final UserRepository userRepository;
 
-    @SuppressWarnings("null")
     public PostResponse createPost(Principal principal, PostCreateRequest request) {
         User user = userService.resolveUser(principal.getName());
+
+        Group group = null;
+        if (request.getGroupId() != null) {
+            UUID groupId = request.getGroupId();
+            group = groupRepository.findById(groupId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Group not found: " + groupId));
+
+            if (!groupMembershipRepository.existsByGroupAndUser(group, user)) {
+                throw new AccessDeniedException("You must be a member of this group to create a post in it.");
+            }
+        }
+
         Post post = Post.builder()
                 .user(user)
-                .content(request.getContent())
+                .group(group)
+                .content(request.getContent().trim())
                 .imageUrl(request.getImageUrl())
                 .build();
         Post savedPost = Objects.requireNonNull(postRepository.save(post), "Saved post must not be null");
-        return toResponse(savedPost, null, null, null);
+
+        GroupSummaryDto groupDto = group != null
+                ? new GroupSummaryDto(group.getId(), group.getName(), group.getType())
+                : null;
+
+        return PostResponse.builder()
+                .id(savedPost.getId())
+                .content(savedPost.getContent())
+                .imageUrl(savedPost.getImageUrl())
+                .createdAt(savedPost.getCreatedAt())
+                .author(new UserSummaryDto(user.getId(), user.getUsername()))
+                .feedExplanation("This is your own post.")
+                .likeCount(0L)
+                .commentCount(0L)
+                .likedByCurrentUser(false)
+                .group(groupDto)
+                .build();
     }
 
     public void deletePost(Principal principal, UUID postId) {
@@ -59,33 +87,39 @@ public class PostService {
     /**
      * Builds a paginated feed for the current user including:
      *   1. The user's own posts
-     *   2. Posts from accepted friends
-     *   3. Posts from users who share a group with the current user
-     *
-     * Relationship data (friend IDs, group-member IDs, group name map) is fetched
-     * in bulk BEFORE iterating over posts, so there are NO per-post DB queries.
+     *   2. Personal posts from accepted friends
+     *   3. Posts from groups the user belongs to
      *
      * Total DB calls per feed request:
-     *   1. findFriendIds          — one bulk query
-     *   2. findGroupMemberUserIds — one bulk query
-     *   3. findSharedGroupNamesByUserIds — one bulk query (only if group members exist)
-     *   4. findFeedByAuthorIds    — one paginated feed query
+     *   1. findFriendIds
+     *   2. findGroupIdsByUserId
+     *   3. findGroupMemberUserIds
+     *   4. findSharedGroupNamesByUserIds (if group members exist)
+     *   5. findUnifiedFeed / findFeedByAuthorIds (single paginated query)
+     *   6. countLikesByPostIds (bulk query for page items)
+     *   7. countCommentsByPostIds (bulk query for page items)
+     *   8. findLikedPostIdsByUserIdAndPostIds (bulk query for page items)
+     *
+     * ZERO per-post database queries!
      */
+    @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getFeed(Principal principal, int page, int size) {
         User currentUser = userService.resolveUser(principal.getName());
         UUID currentUserId = currentUser.getId();
 
-        // ── 1. Bulk-fetch friend IDs ──────────────────────────────────────────
+        // 1. Bulk-fetch friend IDs
         Set<UUID> friendIds = new HashSet<>(friendshipRepository.findFriendIds(currentUserId));
 
-        // ── 2. Bulk-fetch group-member user IDs ──────────────────────────────
+        // 2. Bulk-fetch groups the user belongs to
+        List<UUID> myGroupIds = groupMembershipRepository.findGroupIdsByUserId(currentUserId);
+        Set<UUID> myGroupIdSet = new HashSet<>(myGroupIds);
+
+        // 3. Bulk-fetch group-member user IDs
         Set<UUID> groupMemberIds = new HashSet<>(groupMembershipRepository.findGroupMemberUserIds(currentUserId));
-        // Remove friends and self from groupMemberIds (they already have a stronger relationship)
         groupMemberIds.remove(currentUserId);
         groupMemberIds.removeAll(friendIds);
 
-        // ── 3. Bulk-fetch group name for each group-member author ─────────────
-        // Map: authorId → name of first shared group (for explanation text)
+        // 4. Bulk-fetch group name map for group members
         Map<UUID, String> groupMemberGroupName;
         if (!groupMemberIds.isEmpty()) {
             List<Object[]> rows = groupMembershipRepository.findSharedGroupNamesByUserIds(
@@ -98,18 +132,31 @@ public class PostService {
             groupMemberGroupName = Collections.emptyMap();
         }
 
-        // ── 4. Build the combined author ID list and fetch paginated posts ────
+        // 5. Combined author IDs
         Set<UUID> allAuthorIds = new LinkedHashSet<>();
         allAuthorIds.add(currentUserId);
         allAuthorIds.addAll(friendIds);
         allAuthorIds.addAll(groupMemberIds);
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<Post> feedPage = postRepository.findFeedByAuthorIds(new ArrayList<>(allAuthorIds), pageable);
+        Page<Post> feedPage;
+        if (!myGroupIds.isEmpty()) {
+            feedPage = postRepository.findUnifiedFeed(new ArrayList<>(allAuthorIds), myGroupIds, pageable);
+        } else {
+            feedPage = postRepository.findFeedByAuthorIds(new ArrayList<>(allAuthorIds), pageable);
+        }
 
-        // ── 5. Map to response using pre-loaded relationship data (no DB calls) ─
+        List<UUID> postIds = feedPage.getContent().stream().map(Post::getId).collect(Collectors.toList());
+
+        // 6. Bulk-fetch likes, comments, and like status
+        Map<UUID, Long> likeCounts = bulkFetchLikeCounts(postIds);
+        Map<UUID, Long> commentCounts = bulkFetchCommentCounts(postIds);
+        Set<UUID> userLikedPostIds = bulkFetchUserLikes(currentUserId, postIds);
+
+        // 7. Map to response in memory
         List<PostResponse> content = feedPage.getContent().stream()
-                .map(post -> toResponse(post, currentUserId, friendIds, groupMemberGroupName))
+                .map(post -> toResponse(post, currentUserId, friendIds, groupMemberGroupName,
+                        likeCounts, commentCounts, userLikedPostIds, myGroupIdSet))
                 .collect(Collectors.toList());
 
         return PagedResponse.<PostResponse>builder()
@@ -121,15 +168,22 @@ public class PostService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getUserPosts(String username, int page, int size) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         Pageable pageable = PageRequest.of(page, size);
         Page<Post> postsPage = postRepository.findByUserOrderByCreatedAtDesc(user, pageable);
-        // No current-user context here, so no explanation available
+
+        List<UUID> postIds = postsPage.getContent().stream().map(Post::getId).collect(Collectors.toList());
+        Map<UUID, Long> likeCounts = bulkFetchLikeCounts(postIds);
+        Map<UUID, Long> commentCounts = bulkFetchCommentCounts(postIds);
+
         List<PostResponse> content = postsPage.getContent().stream()
-                .map(post -> toResponse(post, null, null, null))
+                .map(post -> toResponse(post, null, null, null,
+                        likeCounts, commentCounts, Collections.emptySet(), Collections.emptySet()))
                 .collect(Collectors.toList());
+
         return PagedResponse.<PostResponse>builder()
                 .content(content)
                 .page(postsPage.getNumber())
@@ -139,62 +193,72 @@ public class PostService {
                 .build();
     }
 
-    // -------------------------------------------------------------------------
-    // Feed Explanation Logic — uses pre-loaded Sets/Maps, zero DB calls
-    // -------------------------------------------------------------------------
+    private Map<UUID, Long> bulkFetchLikeCounts(List<UUID> postIds) {
+        if (postIds.isEmpty()) return Collections.emptyMap();
+        return postLikeRepository.countLikesByPostIds(postIds).stream()
+                .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
+    }
 
-    /**
-     * Resolves "Why am I seeing this?" explanation for a post using
-     * pre-loaded relationship data rather than per-post DB queries.
-     *
-     * Priority: own post > direct friend > shared group member > network fallback.
-     *
-     * @param post               the feed post
-     * @param currentUserId      UUID of the authenticated user (null if no context)
-     * @param friendIds          Set of accepted friend UUIDs (pre-loaded)
-     * @param groupMemberGroupName Map of groupMember userId → shared group name (pre-loaded)
-     */
+    private Map<UUID, Long> bulkFetchCommentCounts(List<UUID> postIds) {
+        if (postIds.isEmpty()) return Collections.emptyMap();
+        return commentRepository.countCommentsByPostIds(postIds).stream()
+                .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
+    }
+
+    private Set<UUID> bulkFetchUserLikes(UUID userId, List<UUID> postIds) {
+        if (postIds.isEmpty() || userId == null) return Collections.emptySet();
+        return new HashSet<>(postLikeRepository.findLikedPostIdsByUserIdAndPostIds(userId, postIds));
+    }
+
     private String resolveExplanation(Post post,
                                       UUID currentUserId,
                                       Set<UUID> friendIds,
-                                      Map<UUID, String> groupMemberGroupName) {
+                                      Map<UUID, String> groupMemberGroupName,
+                                      Set<UUID> userGroupIds) {
         if (currentUserId == null) return null;
 
         UUID authorId = post.getUser().getId();
         String authorUsername = post.getUser().getUsername();
 
-        // 1. Own post
+        // 1. Group post
+        if (post.getGroup() != null) {
+            return "Posted in " + post.getGroup().getName() + " group.";
+        }
+
+        // 2. Own post
         if (authorId.equals(currentUserId)) {
             return "This is your own post.";
         }
 
-        // 2. Direct friend (pre-loaded, no DB call)
+        // 3. Direct friend
         if (friendIds != null && friendIds.contains(authorId)) {
             return "Posted by your friend @" + authorUsername + ".";
         }
 
-        // 3. Shared group member (pre-loaded, no DB call)
+        // 4. Shared group member
         if (groupMemberGroupName != null) {
             String groupName = groupMemberGroupName.get(authorId);
             if (groupName != null) {
-                return "You both are members of the " + groupName + " group.";
+                return "You both belong to " + groupName + ".";
             }
         }
 
-        // 4. Network fallback (should only appear if post genuinely entered the feed
-        //    through one of the above categories — this is a safety net only)
         return "You may know @" + authorUsername + " through your network.";
     }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
 
     private PostResponse toResponse(Post post,
                                     UUID currentUserId,
                                     Set<UUID> friendIds,
-                                    Map<UUID, String> groupMemberGroupName) {
-        String explanation = resolveExplanation(post, currentUserId, friendIds, groupMemberGroupName);
+                                    Map<UUID, String> groupMemberGroupName,
+                                    Map<UUID, Long> likeCounts,
+                                    Map<UUID, Long> commentCounts,
+                                    Set<UUID> userLikedPostIds,
+                                    Set<UUID> userGroupIds) {
+        String explanation = resolveExplanation(post, currentUserId, friendIds, groupMemberGroupName, userGroupIds);
+        GroupSummaryDto groupDto = post.getGroup() != null
+                ? new GroupSummaryDto(post.getGroup().getId(), post.getGroup().getName(), post.getGroup().getType())
+                : null;
+
         return PostResponse.builder()
                 .id(post.getId())
                 .content(post.getContent())
@@ -202,7 +266,12 @@ public class PostService {
                 .createdAt(post.getCreatedAt())
                 .author(new UserSummaryDto(post.getUser().getId(), post.getUser().getUsername()))
                 .feedExplanation(explanation)
+                .likeCount(likeCounts.getOrDefault(post.getId(), 0L))
+                .commentCount(commentCounts.getOrDefault(post.getId(), 0L))
+                .likedByCurrentUser(userLikedPostIds.contains(post.getId()))
+                .group(groupDto)
                 .build();
     }
 }
+
 

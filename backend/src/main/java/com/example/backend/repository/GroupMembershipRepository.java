@@ -19,6 +19,15 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
            "AND gm.group IN (SELECT gm2.group FROM GroupMembership gm2 WHERE gm2.user = :user2)")
     List<Group> findMutualGroups(@Param("user1") User user1, @Param("user2") User user2);
 
+    boolean existsByGroupAndUser(Group group, User user);
+
+    java.util.Optional<GroupMembership> findByGroupAndUser(Group group, User user);
+
+    long countByGroup(Group group);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"user"})
+    List<GroupMembership> findByGroupOrderByJoinedAtAsc(Group group);
+
     /**
      * Finds all group memberships for a given user.
      */
@@ -51,5 +60,13 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
            "GROUP BY gm2.user.id")
     List<Object[]> findSharedGroupNamesByUserIds(@Param("userId") UUID userId,
                                                   @Param("memberIds") List<UUID> memberIds);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM GroupMembership gm WHERE gm.user = :user")
+    void deleteByUser(@Param("user") User user);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM GroupMembership gm WHERE gm.group IN (SELECT g FROM Group g WHERE g.createdBy = :user)")
+    void deleteByGroupCreator(@Param("user") User user);
 }
 

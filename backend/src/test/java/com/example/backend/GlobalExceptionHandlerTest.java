@@ -35,6 +35,8 @@ class GlobalExceptionHandlerTest {
 
     @MockitoBean UserService userService;
     @MockitoBean PostService postService;
+    @MockitoBean com.example.backend.service.PostLikeService postLikeService;
+    @MockitoBean com.example.backend.service.CommentService commentService;
     @MockitoBean JwtAuthenticationFilter jwtAuthenticationFilter;
     @MockitoBean JwtService jwtService;
     @MockitoBean CustomUserDetailsService customUserDetailsService;

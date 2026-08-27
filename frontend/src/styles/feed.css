@@ -173,8 +173,128 @@
 }
 
 /* ============================================================
-   Load More Button
+   Post Interactions (Likes & Comments)
    ============================================================ */
+.post-group-tag {
+  display: inline-block;
+  background: rgba(124, 58, 237, 0.18);
+  border: 1px solid rgba(124, 58, 237, 0.4);
+  color: #bd9dff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.post-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.85rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(71, 71, 84, 0.25);
+}
+
+.interaction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.interaction-btn:hover {
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--text-primary);
+}
+
+.interaction-btn.liked {
+  color: #ff6584;
+}
+
+.comments-drawer {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed rgba(71, 71, 84, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.comment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: rgba(13, 13, 24, 0.5);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.comment-author {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--accent);
+}
+
+.comment-text {
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+.comment-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.comment-delete-btn:hover {
+  color: var(--danger);
+  background: rgba(224, 92, 92, 0.15);
+}
+
+.add-comment-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-comment-input {
+  flex: 1;
+  background: rgba(13, 13, 24, 0.7);
+  border: 1px solid rgba(71, 71, 84, 0.5);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.add-comment-input:focus {
+  border-color: var(--accent);
+}
+
 .btn-load-more {
   align-self: center;
   background: transparent;

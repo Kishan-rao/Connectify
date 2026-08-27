@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
+import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosClient';
 import '../styles/profile.css';
 
@@ -25,9 +26,13 @@ function PostCard({ post }) {
 
 export default function ProfilePage() {
   const { username } = useParams();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -48,6 +53,21 @@ export default function ProfilePage() {
     loadProfile();
   }, [username]);
 
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to permanently delete your account? All your posts, comments, likes, and profile data will be permanently removed.')) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.delete('/api/auth/account');
+      logout();
+      navigate('/login');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete account.');
+      setDeleting(false);
+    }
+  };
+
   if (loading) return (
     <div className="page-layout">
       <NavBar />
@@ -61,6 +81,8 @@ export default function ProfilePage() {
       <div className="empty-state"><p>User not found.</p></div>
     </div>
   );
+
+  const isOwner = user?.username === username;
 
   return (
     <div className="page-layout">
@@ -84,6 +106,27 @@ export default function ProfilePage() {
               <span className="stat-label">Posts</span>
             </div>
           </div>
+          {isOwner && (
+            <div style={{ marginTop: '0.75rem', width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                className="btn-danger"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  color: '#ef4444',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 600
+                }}
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting Account...' : '🗑️ Delete Account'}
+              </button>
+            </div>
+          )}
         </div>
 
         <h3 className="posts-heading">Posts</h3>

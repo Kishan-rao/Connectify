@@ -22,6 +22,17 @@ public class UserController {
         return ResponseEntity.ok(userService.getMyProfile(principal));
     }
 
+    /** Search users by username query with pagination. */
+    @GetMapping("/search")
+    public ResponseEntity<com.example.backend.dto.PagedResponse<com.example.backend.dto.UserSearchResultDto>> searchUsers(
+            Principal principal,
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(userService.searchUsers(principal, q, page, size));
+    }
+
     /** Public — returns profile WITHOUT email when viewing another user's profile. */
     @GetMapping("/{username}")
     public ResponseEntity<PublicUserProfileResponse> getUserProfile(@PathVariable String username) {

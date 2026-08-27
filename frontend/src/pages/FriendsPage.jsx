@@ -100,11 +100,23 @@ export default function FriendsPage() {
           <div className="friends-card">
             <h2>People You May Know</h2>
             {suggestions.map(s => (
-              <div key={s.id} className="friend-row">
-                <div className="avatar">{s.username[0].toUpperCase()}</div>
-                <span>@{s.username}</span>
+              <div key={s.id} className="friend-row" style={{ alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div className="avatar">{s.username[0].toUpperCase()}</div>
+                  <div>
+                    <span style={{ fontWeight: 600 }}>@{s.username}</span>
+                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '2px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {s.mutualFriends > 0 && (
+                        <span>🤝 {s.mutualFriends} mutual {s.mutualFriends === 1 ? 'friend' : 'friends'}</span>
+                      )}
+                      {s.mutualFriends > 0 && s.sharedGroups > 0 && <span>•</span>}
+                      {s.sharedGroups > 0 && (
+                        <span>👥 {s.sharedGroups} shared {s.sharedGroups === 1 ? 'group' : 'groups'}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <button className="btn-add" onClick={() => {
-                  setAddUsername(s.username);
                   api.post('/api/friendships', { addresseeUsername: s.username }).then(loadAll);
                 }}>Add</button>
               </div>

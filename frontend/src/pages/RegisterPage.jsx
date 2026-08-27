@@ -39,32 +39,43 @@ export default function RegisterPage() {
         </div>
         <p className="auth-subtitle">Create your account and start connecting.</p>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="auth-form" autoComplete="on">
           <div className="form-group">
-            <label>Username</label>
+            <label htmlFor="username">Username</label>
             <input
+              id="username"
+              name="username"
               type="text"
               placeholder="choose_a_username"
+              autoComplete="username"
               value={form.username}
               onChange={e => setForm({ ...form, username: e.target.value })}
               required
             />
           </div>
+
           <div className="form-group">
-            <label>Email</label>
+            <label htmlFor="email">Email</label>
             <input
+              id="email"
+              name="email"
               type="email"
               placeholder="you@example.com"
+              autoComplete="email"
               value={form.email}
               onChange={e => setForm({ ...form, email: e.target.value })}
               required
             />
           </div>
+
           <div className="form-group">
-            <label>Password</label>
+            <label htmlFor="password">Password</label>
             <input
+              id="password"
+              name="password"
               type="password"
               placeholder="••••••••"
+              autoComplete="new-password"
               value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })}
               required
@@ -79,7 +90,9 @@ export default function RegisterPage() {
               </span>
             </div>
           </div>
+
           {error && <p className="auth-error">{error}</p>}
+
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>

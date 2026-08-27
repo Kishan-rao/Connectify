@@ -19,4 +19,8 @@ public class PostResponse {
     private LocalDateTime createdAt;
     private UserSummaryDto author;
     private String feedExplanation;
+    private long likeCount;
+    private long commentCount;
+    private boolean likedByCurrentUser;
+    private GroupSummaryDto group;
 }
