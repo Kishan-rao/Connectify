@@ -2,6 +2,7 @@ package com.example.backend.entity;
 
 public enum NotificationType {
     FRIEND_REQUEST,
-    NEW_POST,
-    GROUP_INVITE
+    FRIEND_REQUEST_ACCEPTED,
+    POST_LIKED,
+    POST_COMMENTED
 }

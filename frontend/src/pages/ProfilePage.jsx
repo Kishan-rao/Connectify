@@ -70,7 +70,6 @@ export default function ProfilePage() {
           <div className="profile-avatar">{profile.username[0].toUpperCase()}</div>
           <div className="profile-info">
             <h2>@{profile.username}</h2>
-            <p>{profile.email}</p>
             <p className="joined-date">
               Joined {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </p>

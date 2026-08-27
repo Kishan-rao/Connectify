@@ -15,7 +15,7 @@ A full-stack social networking web application:
 
 - JWT-based registration and login with BCrypt password hashing
 - Protected feed, friends, and profile pages
-- Create text posts and browse a paginated feed of your own and friends' posts
+- Create text posts and browse a paginated feed of your own, friends', and shared-group members' posts
 - Feed transparency: "Why am I seeing this?" explanations for each feed post
 - Friend requests: send, accept, decline, view accepted friends, and receive friends-of-friends suggestions
 - User profiles with account details, friend and post counts, and recent posts
@@ -58,7 +58,40 @@ Connectify/
 
 ## Run Locally
 
-### 1) Start PostgreSQL
+### 1) Configure environment variables
+
+Copy `.env.example` to `.env` in the repository root and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+The required variables are:
+
+| Variable       | Description                                   | Example value                        |
+|----------------|-----------------------------------------------|--------------------------------------|
+| `DB_URL`       | JDBC URL for PostgreSQL                       | `jdbc:postgresql://localhost:5432/connectify` |
+| `DB_USERNAME`  | PostgreSQL username                           | `connectify`                         |
+| `DB_PASSWORD`  | PostgreSQL password                           | `<your-password>`                    |
+| `JWT_SECRET`   | Base64-encoded HMAC-SHA256 signing key (≥ 256 bit) | `<your-generated-secret>`       |
+
+**Do not wrap values in quotes; quotes become part of the value.**
+
+#### Generating a JWT secret
+
+```bash
+# Linux / macOS
+openssl rand -base64 48
+```
+
+```powershell
+# Windows PowerShell
+[Convert]::ToBase64String((1..48 | ForEach-Object { [byte](Get-Random -Max 256) }))
+```
+
+The application will **refuse to start** if `JWT_SECRET` is not set, preventing accidental use of an insecure default.
+
+### 2) Start PostgreSQL
 
 The repository provides a local PostgreSQL 16 container with database and user
 names that match the backend defaults:
@@ -67,32 +100,18 @@ names that match the backend defaults:
 docker compose up -d postgres
 ```
 
-It exposes PostgreSQL at `localhost:5433` with:
+It exposes PostgreSQL at `localhost:5432` with:
 
 - Database: `connectify`
 - Username: `connectify`
-- Password: `connectify`
+- Password: see `POSTGRES_PASSWORD` in `docker-compose.yml` / your `.env`
 
-Change this password before using anything other than a local development environment.
+Change the password before using anything other than a local development environment.
 
-For a separately managed database, set these environment variables before
-starting the backend:
+For a separately managed database, set the `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`
+environment variables (or update your `.env` file) to point to your instance.
 
-```powershell
-$env:DB_URL = "jdbc:postgresql://localhost:5432/connectify"
-$env:DB_USERNAME = "connectify"
-$env:DB_PASSWORD = "your-secure-password"
-```
-
-Alternatively, copy `.env.example` to `.env` in the repository root and adjust the values:
-
-```bash
-cp .env.example .env
-```
-
-Do not wrap the password in quotes; quotes become part of the password value.
-
-### 2) Start the backend
+### 3) Start the backend
 
 ```bash
 cd backend
@@ -108,7 +127,7 @@ cd backend
 
 Backend runs on `http://localhost:8080`.
 
-### 3) Start the frontend
+### 4) Start the frontend
 
 Open a second terminal:
 
@@ -122,8 +141,8 @@ Frontend runs on the Vite dev URL (typically `http://localhost:5173`) and calls 
 
 ## Database Configuration
 
-The backend uses PostgreSQL by default at `jdbc:postgresql://localhost:5433/connectify`.
-Datasource settings read from `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`, with local Docker-friendly defaults. Do not use the default password outside local development.
+The backend uses PostgreSQL by default at `jdbc:postgresql://localhost:5432/connectify`.
+Datasource settings are read from `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`.
 
 Hibernate uses `ddl-auto=update` for local development. Tests use an isolated H2 in-memory database via `backend/src/test/resources/application.properties`.
 
@@ -151,10 +170,11 @@ docker compose exec postgres psql -U connectify -d connectify -c "ALTER USER con
 DB_PASSWORD=your-secure-password
 ```
 
-Changing `POSTGRES_PASSWORD` in `docker-compose.yml` does not update an existing database volume.
+
+Changing `POSTGRES_PASSWORD` in `docker-compose.yml` does not update an existing database volume; you must use the SQL command above instead.
 
 ## Authentication
 
 - JWT-based authentication is enabled.
-- Replace `app.jwt.secret` with a secure key before any production deployment.
-
+- The signing key is loaded from the `JWT_SECRET` environment variable; the application will not start without it.
+- Never commit a real `JWT_SECRET` value to version control.

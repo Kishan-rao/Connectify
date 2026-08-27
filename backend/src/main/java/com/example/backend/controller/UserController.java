@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.PublicUserProfileResponse;
 import com.example.backend.dto.UserProfileResponse;
 import com.example.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -15,13 +16,16 @@ public class UserController {
 
     private final UserService userService;
 
+    /** Private — returns full profile including email for the authenticated user. */
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMyProfile(Principal principal) {
         return ResponseEntity.ok(userService.getMyProfile(principal));
     }
 
+    /** Public — returns profile WITHOUT email when viewing another user's profile. */
     @GetMapping("/{username}")
-    public ResponseEntity<UserProfileResponse> getUserProfile(@PathVariable String username) {
+    public ResponseEntity<PublicUserProfileResponse> getUserProfile(@PathVariable String username) {
         return ResponseEntity.ok(userService.getUserProfile(username));
     }
 }
+

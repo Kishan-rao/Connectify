@@ -1,0 +1,170 @@
+package com.example.backend;
+
+import com.example.backend.dto.PagedResponse;
+import com.example.backend.dto.PostResponse;
+import com.example.backend.entity.*;
+import com.example.backend.repository.*;
+import com.example.backend.service.PostService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.annotation.DirtiesContext;
+
+import java.security.Principal;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Full Spring Boot integration test (H2 in-memory).
+ * Verifies that the feed correctly includes own posts, friend posts,
+ * and group-member posts — and that explanations match the actual reason.
+ */
+@SpringBootTest
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
+class FeedIntegrationTest {
+
+    @Autowired PostService postService;
+    @Autowired UserRepository userRepository;
+    @Autowired PostRepository postRepository;
+    @Autowired FriendshipRepository friendshipRepository;
+    @Autowired GroupRepository groupRepository;
+    @Autowired GroupMembershipRepository groupMembershipRepository;
+    @Autowired PasswordEncoder passwordEncoder;
+
+    User alice, bob, carol, dave;
+
+    @BeforeEach
+    void setUp() {
+        alice = saveUser("alice");
+        bob   = saveUser("bob");
+        carol = saveUser("carol");
+        dave  = saveUser("dave");
+    }
+
+    @Test
+    void ownPost_appearsInFeed_withOwnExplanation() {
+        savePost(alice, "Hello from Alice");
+
+        PagedResponse<PostResponse> feed = postService.getFeed(principal(alice), 0, 20);
+
+        assertThat(feed.getContent()).hasSize(1);
+        assertThat(feed.getContent().get(0).getFeedExplanation()).contains("your own post");
+    }
+
+    @Test
+    void friendPost_appearsInFeed_withFriendExplanation() {
+        makeFriends(alice, bob);
+        savePost(bob, "Hello from Bob");
+
+        PagedResponse<PostResponse> feed = postService.getFeed(principal(alice), 0, 20);
+
+        List<PostResponse> posts = feed.getContent();
+        assertThat(posts).hasSize(1);
+        assertThat(posts.get(0).getAuthor().getUsername()).isEqualTo("bob");
+        assertThat(posts.get(0).getFeedExplanation()).contains("friend");
+    }
+
+    @Test
+    void groupMemberPost_appearsInFeed_withGroupExplanation() {
+        Group club = saveGroup("BookClub");
+        joinGroup(alice, club);
+        joinGroup(carol, club);
+        savePost(carol, "Hello from Carol");
+
+        PagedResponse<PostResponse> feed = postService.getFeed(principal(alice), 0, 20);
+
+        List<PostResponse> posts = feed.getContent();
+        assertThat(posts).hasSize(1);
+        assertThat(posts.get(0).getAuthor().getUsername()).isEqualTo("carol");
+        assertThat(posts.get(0).getFeedExplanation()).contains("BookClub");
+    }
+
+    @Test
+    void strangerPost_doesNotAppearInFeed() {
+        savePost(dave, "Hello from Dave");
+
+        PagedResponse<PostResponse> feed = postService.getFeed(principal(alice), 0, 20);
+
+        assertThat(feed.getContent()).isEmpty();
+    }
+
+    @Test
+    void friendWhoIsAlsoGroupMember_onlyAppearsOnce_withFriendExplanation() {
+        Group club = saveGroup("PhotoClub");
+        joinGroup(alice, club);
+        joinGroup(bob, club);
+        makeFriends(alice, bob);
+        savePost(bob, "Bob is friend and group member");
+
+        PagedResponse<PostResponse> feed = postService.getFeed(principal(alice), 0, 20);
+
+        // Post must appear exactly ONCE
+        assertThat(feed.getContent()).hasSize(1);
+        // Friend relationship takes priority over shared group
+        assertThat(feed.getContent().get(0).getFeedExplanation()).contains("friend");
+    }
+
+    @Test
+    void feed_isPagedCorrectly() {
+        makeFriends(alice, bob);
+        for (int i = 0; i < 5; i++) savePost(bob, "Post " + i);
+
+        PagedResponse<PostResponse> page0 = postService.getFeed(principal(alice), 0, 3);
+        PagedResponse<PostResponse> page1 = postService.getFeed(principal(alice), 1, 3);
+
+        assertThat(page0.getContent()).hasSize(3);
+        assertThat(page0.getTotalElements()).isEqualTo(5L);
+        assertThat(page0.getTotalPages()).isEqualTo(2);
+        assertThat(page1.getContent()).hasSize(2);
+    }
+
+    @Test
+    void feed_noDuplicatePosts_whenUserInMultipleGroups() {
+        Group club1 = saveGroup("Club1");
+        Group club2 = saveGroup("Club2");
+        joinGroup(alice, club1);
+        joinGroup(alice, club2);
+        joinGroup(carol, club1);
+        joinGroup(carol, club2);
+        savePost(carol, "Carol in two clubs");
+
+        PagedResponse<PostResponse> feed = postService.getFeed(principal(alice), 0, 20);
+
+        assertThat(feed.getContent()).hasSize(1);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private User saveUser(String username) {
+        return userRepository.save(User.builder()
+                .username(username)
+                .email(username + "@test.com")
+                .passwordHash(passwordEncoder.encode("Password1"))
+                .role(Role.USER)
+                .build());
+    }
+
+    private void savePost(User author, String content) {
+        postRepository.save(Post.builder().user(author).content(content).build());
+    }
+
+    private void makeFriends(User a, User b) {
+        friendshipRepository.save(Friendship.builder()
+                .requester(a).addressee(b).status(FriendshipStatus.ACCEPTED).build());
+    }
+
+    private Group saveGroup(String name) {
+        return groupRepository.save(Group.builder().name(name).type(GroupType.OPEN).build());
+    }
+
+    private void joinGroup(User user, Group group) {
+        groupMembershipRepository.save(GroupMembership.builder().user(user).group(group).build());
+    }
+
+    private static Principal principal(User u) {
+        return u::getUsername;
+    }
+}

@@ -4,6 +4,7 @@ import com.example.backend.entity.Post;
 import com.example.backend.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,10 +14,22 @@ import java.util.UUID;
 
 public interface PostRepository extends JpaRepository<Post, UUID> {
 
+    @EntityGraph(attributePaths = {"user"})
     Page<Post> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
 
     long countByUser(User user);
 
     @Query("SELECT p FROM Post p WHERE p.user IN :users OR p.user = :currentUser ORDER BY p.createdAt DESC")
     Page<Post> findFeed(@Param("users") List<User> users, @Param("currentUser") User currentUser, Pageable pageable);
+
+    /**
+     * Feed query that accepts a pre-computed list of author UUIDs
+     * (own ID + friend IDs + group-member IDs). Returns paginated posts ordered
+     * newest-first. DISTINCT prevents duplicates when a user appears in multiple
+     * categories (e.g. both a friend and a shared-group member).
+     */
+    @EntityGraph(attributePaths = {"user"})
+    @Query("SELECT DISTINCT p FROM Post p WHERE p.user.id IN :authorIds ORDER BY p.createdAt DESC")
+    Page<Post> findFeedByAuthorIds(@Param("authorIds") List<UUID> authorIds, Pageable pageable);
 }
+

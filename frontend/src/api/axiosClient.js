@@ -15,14 +15,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Redirect to login on 401
+// On 401, clear auth state and redirect — but NOT for auth endpoints themselves
+// (login/register failures must surface as errors in the UI, not trigger a redirect).
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const url = err.config?.url || '';
+    const isAuthEndpoint =
+      url.includes('/api/auth/login') || url.includes('/api/auth/register');
+
+    if (err.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Avoid a redirect loop: only navigate if we are not already on /login
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(err);
   }

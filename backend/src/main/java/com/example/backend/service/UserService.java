@@ -1,7 +1,9 @@
 package com.example.backend.service;
 
+import com.example.backend.dto.PublicUserProfileResponse;
 import com.example.backend.dto.UserProfileResponse;
 import com.example.backend.entity.User;
+import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.repository.FriendshipRepository;
 import com.example.backend.repository.PostRepository;
 import com.example.backend.repository.UserRepository;
@@ -19,18 +21,20 @@ public class UserService {
     private final FriendshipRepository friendshipRepository;
     private final PostRepository postRepository;
 
+    /** Returns the authenticated user's own profile including email. */
     public UserProfileResponse getMyProfile(Principal principal) {
         User user = resolveUser(principal.getName());
-        return buildProfile(user);
+        return buildPrivateProfile(user);
     }
 
-    public UserProfileResponse getUserProfile(String username) {
+    /** Returns a public profile view that does NOT include email. */
+    public PublicUserProfileResponse getUserProfile(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-        return buildProfile(user);
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        return buildPublicProfile(user);
     }
 
-    private UserProfileResponse buildProfile(User user) {
+    private UserProfileResponse buildPrivateProfile(User user) {
         long friendCount = friendshipRepository.findAllAcceptedFriendships(user).size();
         long postCount = postRepository.countByUser(user);
         return UserProfileResponse.builder()
@@ -43,8 +47,27 @@ public class UserService {
                 .build();
     }
 
+    private PublicUserProfileResponse buildPublicProfile(User user) {
+        long friendCount = friendshipRepository.findAllAcceptedFriendships(user).size();
+        long postCount = postRepository.countByUser(user);
+        return PublicUserProfileResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .createdAt(user.getCreatedAt())
+                .friendCount(friendCount)
+                .postCount(postCount)
+                .build();
+    }
+
+    /**
+     * Resolves the authenticated principal's username/email to a User entity.
+     * Throws {@link UsernameNotFoundException} (Spring Security contract) rather
+     * than {@link ResourceNotFoundException} so that the JWT filter and
+     * authentication machinery continue to work correctly.
+     */
     public User resolveUser(String usernameOrEmail) {
         return userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + usernameOrEmail));
     }
 }
+

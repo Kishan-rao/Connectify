@@ -23,4 +23,33 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
      * Finds all group memberships for a given user.
      */
     List<GroupMembership> findByUser(User user);
+
+    /**
+     * Returns all group IDs that the given user belongs to.
+     * Single bulk query — avoids per-post group lookups in the feed.
+     */
+    @Query("SELECT gm.group.id FROM GroupMembership gm WHERE gm.user.id = :userId")
+    List<UUID> findGroupIdsByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Returns the UUIDs of all users (excluding the given user) who share at least
+     * one group with that user. Single bulk query used for feed inclusion and explanation.
+     */
+    @Query("SELECT DISTINCT gm2.user.id FROM GroupMembership gm " +
+           "JOIN GroupMembership gm2 ON gm.group = gm2.group " +
+           "WHERE gm.user.id = :userId AND gm2.user.id <> :userId")
+    List<UUID> findGroupMemberUserIds(@Param("userId") UUID userId);
+
+    /**
+     * For a given set of group member user IDs, returns a mapping of userId → first shared group name.
+     * Used to generate accurate feed explanations without per-post queries.
+     * Returns Object[] rows: [userId, groupName]
+     */
+    @Query("SELECT gm2.user.id, MIN(gm2.group.name) FROM GroupMembership gm " +
+           "JOIN GroupMembership gm2 ON gm.group = gm2.group " +
+           "WHERE gm.user.id = :userId AND gm2.user.id IN :memberIds " +
+           "GROUP BY gm2.user.id")
+    List<Object[]> findSharedGroupNamesByUserIds(@Param("userId") UUID userId,
+                                                  @Param("memberIds") List<UUID> memberIds);
 }
+
