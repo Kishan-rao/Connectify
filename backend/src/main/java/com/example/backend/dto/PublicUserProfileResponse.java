@@ -22,4 +22,6 @@ public class PublicUserProfileResponse {
     private LocalDateTime createdAt;
     private long friendCount;
     private long postCount;
+    private String relationshipStatus; // NONE, FRIENDS, PENDING_SENT, PENDING_RECEIVED, SELF
+    private UUID friendshipId;          // Present when PENDING_RECEIVED to allow accept/decline
 }

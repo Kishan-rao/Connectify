@@ -39,8 +39,13 @@ public class UserController {
 
     /** Public — returns profile WITHOUT email when viewing another user's profile. */
     @GetMapping("/{username}")
-    public ResponseEntity<PublicUserProfileResponse> getUserProfile(@PathVariable String username) {
-        return ResponseEntity.ok(userService.getUserProfile(username));
+    public ResponseEntity<PublicUserProfileResponse> getUserProfile(
+            Principal principal,
+            @PathVariable String username) {
+        if (principal == null) {
+            return ResponseEntity.ok(userService.getUserProfile(username));
+        }
+        return ResponseEntity.ok(userService.getUserProfile(principal, username));
     }
 
     /** Returns the list of friends for a user without email. */

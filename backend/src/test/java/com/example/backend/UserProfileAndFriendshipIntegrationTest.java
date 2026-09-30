@@ -83,6 +83,37 @@ class UserProfileAndFriendshipIntegrationTest {
     }
 
     @Test
+    void profile_returnsAccurateRelationshipStatusAndFriendshipId() {
+        // Self
+        PublicUserProfileResponse selfView = userService.getUserProfile(principal(alice), "alice");
+        assertThat(selfView.getRelationshipStatus()).isEqualTo("SELF");
+
+        // Unconnected
+        PublicUserProfileResponse beforeRequest = userService.getUserProfile(principal(bob), "alice");
+        assertThat(beforeRequest.getRelationshipStatus()).isEqualTo("NONE");
+        assertThat(beforeRequest.getFriendshipId()).isNull();
+
+        // Bob sends request to Alice
+        FriendshipResponse fr = friendshipService.sendRequest(principal(bob), new FriendRequestDto("alice"));
+
+        // Bob viewing Alice -> PENDING_SENT
+        PublicUserProfileResponse bobViewingAlice = userService.getUserProfile(principal(bob), "alice");
+        assertThat(bobViewingAlice.getRelationshipStatus()).isEqualTo("PENDING_SENT");
+
+        // Alice viewing Bob -> PENDING_RECEIVED and friendshipId matches
+        PublicUserProfileResponse aliceViewingBob = userService.getUserProfile(principal(alice), "bob");
+        assertThat(aliceViewingBob.getRelationshipStatus()).isEqualTo("PENDING_RECEIVED");
+        assertThat(aliceViewingBob.getFriendshipId()).isEqualTo(fr.getId());
+
+        // Alice accepts request
+        friendshipService.respondToRequest(principal(alice), fr.getId(), true);
+
+        // Both see FRIENDS
+        assertThat(userService.getUserProfile(principal(bob), "alice").getRelationshipStatus()).isEqualTo("FRIENDS");
+        assertThat(userService.getUserProfile(principal(alice), "bob").getRelationshipStatus()).isEqualTo("FRIENDS");
+    }
+
+    @Test
     void friendList_canBeRetrievedForUser_andContainsExpectedUsers() {
         // Bob -> Alice accepted
         FriendshipResponse fr1 = friendshipService.sendRequest(principal(bob), new FriendRequestDto("alice"));

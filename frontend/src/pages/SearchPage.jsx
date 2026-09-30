@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import api from '../api/axiosClient';
 import '../styles/search.css';
@@ -8,139 +8,206 @@ export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [sentRequests, setSentRequests] = useState(new Set());
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
 
-  const handleSearch = async (searchPage = 0, reset = false) => {
-    if (!query.trim()) {
+  const navigate = useNavigate();
+  const searchCardRef = useRef(null);
+  const inputRef = useRef(null);
+  const abortControllerRef = useRef(null);
+  const latestQueryRef = useRef('');
+
+  // Perform search with cancellation of previous requests
+  const performSearch = useCallback(async (searchQuery) => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
       setResults([]);
+      setIsOpen(false);
+      setLoading(false);
       return;
     }
 
+    // Cancel in-flight request if any
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    latestQueryRef.current = trimmed;
     setLoading(true);
+
     try {
-      const { data } = await api.get(`/api/users/search?q=${encodeURIComponent(query.trim())}&page=${searchPage}&size=15`);
-      setResults(prev => reset ? data.content : [...prev, ...data.content]);
-      setTotalPages(data.totalPages);
-      setPage(searchPage);
+      const { data } = await api.get(
+        `/api/users/search?q=${encodeURIComponent(trimmed)}&page=0&size=10`,
+        { signal: controller.signal }
+      );
+
+      // Only update state if this response corresponds to the latest query
+      if (latestQueryRef.current === trimmed) {
+        setResults(data.content || []);
+        setIsOpen(true);
+      }
     } catch (err) {
-      console.error(err);
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return; // Ignore canceled requests
+      }
+      console.error('Search error:', err);
+      if (latestQueryRef.current === trimmed) {
+        setResults([]);
+      }
     } finally {
+      if (latestQueryRef.current === trimmed) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  // Debounced search trigger (250ms debounce)
+  useEffect(() => {
+    const trimmed = query.trim();
+    setSelectedIndex(-1);
+
+    if (!trimmed) {
+      setResults([]);
+      setIsOpen(false);
       setLoading(false);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      return;
+    }
+
+    setIsOpen(true);
+    setLoading(true);
+
+    const timer = setTimeout(() => {
+      performSearch(trimmed);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [query, performSearch]);
+
+  // Click outside listener to dismiss dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchCardRef.current && !searchCardRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectUser = (user) => {
+    setIsOpen(false);
+    navigate(`/profile/${user.username}`);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!isOpen) {
+      if (e.key === 'ArrowDown' && query.trim()) {
+        setIsOpen(true);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev < results.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : results.length - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedIndex >= 0 && selectedIndex < results.length) {
+        handleSelectUser(results[selectedIndex]);
+      } else if (results.length > 0) {
+        handleSelectUser(results[0]);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsOpen(false);
     }
   };
 
-  const handleSendRequest = async (username, userId) => {
-    try {
-      await api.post('/api/friendships', { addresseeUsername: username });
-      setSentRequests(prev => new Set(prev).add(userId));
-    } catch (err) {
-      console.error(err);
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (selectedIndex >= 0 && selectedIndex < results.length) {
+      handleSelectUser(results[selectedIndex]);
+    } else if (results.length > 0) {
+      handleSelectUser(results[0]);
+    } else if (query.trim()) {
+      performSearch(query.trim());
+      setIsOpen(true);
     }
-  };
-
-  const getButtonContent = (u) => {
-    if (u.relationshipStatus === 'SELF') {
-      return <span className="badge-status self">You</span>;
-    }
-    if (u.relationshipStatus === 'FRIENDS') {
-      return <span className="badge-status friends">Friends ✓</span>;
-    }
-    if (u.relationshipStatus === 'PENDING_SENT' || sentRequests.has(u.id)) {
-      return <span className="badge-status pending">Request Sent</span>;
-    }
-    if (u.relationshipStatus === 'PENDING_RECEIVED') {
-      return <span className="badge-status pending">Pending Response</span>;
-    }
-    return (
-      <button className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.85rem' }} onClick={() => handleSendRequest(u.username, u.id)}>
-        + Add Friend
-      </button>
-    );
   };
 
   return (
     <div className="page-layout">
       <NavBar />
       <div className="search-container">
-        <div className="search-bar-card">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSearch(0, true);
-            }}
-            className="search-input-wrapper"
-          >
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search users by username..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSearch(0, true);
-                }
-              }}
-            />
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={loading || !query.trim()}
-              onClick={(e) => {
-                e.preventDefault();
-                handleSearch(0, true);
-              }}
-            >
-              {loading ? 'Searching...' : 'Search'}
-            </button>
-          </form>
-        </div>
-
-        {results.length > 0 && (
-          <div className="search-results-card">
-            <h3 style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>
-              Search Results ({results.length})
-            </h3>
-            {results.map(u => (
-              <div key={u.id} className="search-user-row">
-                <div className="search-user-info">
-                  <Link to={`/profile/${u.username}`} style={{ textDecoration: 'none' }}>
-                    <div className="avatar">{u.username[0].toUpperCase()}</div>
-                  </Link>
-                  <div>
-                    <Link to={`/profile/${u.username}`} className="search-user-name">
-                      @{u.username}
-                    </Link>
-                    <div className="search-user-meta">
-                      {u.friendCount} {u.friendCount === 1 ? 'friend' : 'friends'}
-                    </div>
-                  </div>
-                </div>
-                <div>{getButtonContent(u)}</div>
-              </div>
-            ))}
-
-            {page + 1 < totalPages && (
+        <div className="search-card-wrapper" ref={searchCardRef}>
+          <div className="search-bar-card">
+            <form onSubmit={handleFormSubmit} className="search-input-wrapper">
+              <input
+                ref={inputRef}
+                type="text"
+                className="search-input"
+                placeholder="Search users by username..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => { if (query.trim()) setIsOpen(true); }}
+                autoComplete="off"
+                aria-autocomplete="list"
+                aria-expanded={isOpen}
+              />
               <button
-                className="btn-load-more"
-                onClick={() => handleSearch(page + 1, false)}
-                style={{ alignSelf: 'center', marginTop: '0.5rem' }}
+                type="submit"
+                className="btn-primary"
+                disabled={loading || !query.trim()}
               >
-                Load More Results
+                {loading ? 'Searching...' : 'Search'}
               </button>
-            )}
+            </form>
           </div>
-        )}
 
-        {!loading && query.trim() && results.length === 0 && (
-          <div className="empty-state">
-            <span>🔍</span>
-            <p>No users found matching "{query}".</p>
-          </div>
-        )}
+          {/* Live Autocomplete Dropdown */}
+          {isOpen && query.trim().length > 0 && (
+            <div className="search-dropdown" role="listbox">
+              {loading && results.length === 0 ? (
+                <div className="search-dropdown-loading">
+                  Searching for "{query.trim()}"...
+                </div>
+              ) : results.length === 0 ? (
+                <div className="search-dropdown-empty">
+                  No users found
+                </div>
+              ) : (
+                <div className="search-dropdown-list">
+                  {results.map((u, idx) => (
+                    <div
+                      key={u.id}
+                      className={`search-dropdown-item ${idx === selectedIndex ? 'selected' : ''}`}
+                      onClick={() => handleSelectUser(u)}
+                      onMouseEnter={() => setSelectedIndex(idx)}
+                      role="option"
+                      aria-selected={idx === selectedIndex}
+                    >
+                      <div className="avatar sm">{u.username?.[0]?.toUpperCase() || '?'}</div>
+                      <div className="search-dropdown-info">
+                        <span className="search-dropdown-username">@{u.username}</span>
+                        <span className="search-dropdown-meta">
+                          {u.friendCount || 0} {u.friendCount === 1 ? 'friend' : 'friends'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

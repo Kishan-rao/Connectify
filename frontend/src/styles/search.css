@@ -8,6 +8,11 @@
   gap: 1.5rem;
 }
 
+.search-card-wrapper {
+  position: relative;
+  width: 100%;
+}
+
 .search-bar-card {
   background: rgba(24, 24, 38, 0.85);
   border: 1px solid rgba(124, 58, 237, 0.2);
@@ -40,49 +45,86 @@
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
 }
 
-.search-results-card {
-  background: rgba(24, 24, 38, 0.8);
-  border: 1px solid rgba(71, 71, 84, 0.35);
+/* Autocomplete Dropdown */
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: rgba(26, 29, 39, 0.98);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.25rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  z-index: 100;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.search-dropdown-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
 }
 
-.search-user-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 0.5rem;
-  border-bottom: 1px solid rgba(71, 71, 84, 0.2);
-}
-
-.search-user-row:last-child {
-  border-bottom: none;
-}
-
-.search-user-info {
+.search-dropdown-item {
   display: flex;
   align-items: center;
   gap: 0.85rem;
+  padding: 0.85rem 1.25rem;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(71, 71, 84, 0.2);
+  transition: background 0.15s ease;
 }
 
-.search-user-name {
+.search-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.search-dropdown-item:hover,
+.search-dropdown-item.selected {
+  background: rgba(124, 92, 255, 0.18);
+}
+
+.search-dropdown-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.search-dropdown-username {
   font-weight: 600;
   color: var(--text-primary);
+  font-size: 0.95rem;
 }
 
-.search-user-meta {
+.search-dropdown-meta {
   font-size: 0.8rem;
   color: var(--text-muted);
 }
 
+.search-dropdown-empty {
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.search-dropdown-loading {
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Status badges (reused across profile & search) */
 .badge-status {
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 500;
+  display: inline-flex;
+  align-items: center;
 }
 
 .badge-status.friends {

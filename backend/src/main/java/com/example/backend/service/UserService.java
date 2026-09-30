@@ -41,9 +41,16 @@ public class UserService {
     /** Returns a public profile view that does NOT include email. */
     @Transactional(readOnly = true)
     public PublicUserProfileResponse getUserProfile(String username) {
+        return getUserProfile(null, username);
+    }
+
+    /** Returns a public profile view enriched with relationshipStatus relative to principal. */
+    @Transactional(readOnly = true)
+    public PublicUserProfileResponse getUserProfile(Principal principal, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
-        return buildPublicProfile(user);
+        User currentUser = principal != null ? resolveUser(principal.getName()) : null;
+        return buildPublicProfile(user, currentUser);
     }
 
     /**
@@ -94,7 +101,7 @@ public class UserService {
                         status = "NONE";
                     }
 
-                    long friendCount = friendshipRepository.findAllAcceptedFriendships(u).size();
+                    long friendCount = friendshipRepository.countAcceptedFriendships(u);
 
                     return UserSearchResultDto.builder()
                             .id(u.getId())
@@ -140,15 +147,42 @@ public class UserService {
                 .build();
     }
 
-    private PublicUserProfileResponse buildPublicProfile(User user) {
+    private PublicUserProfileResponse buildPublicProfile(User user, User currentUser) {
         long friendCount = friendshipRepository.countAcceptedFriendships(user);
         long postCount = postRepository.countByUser(user);
+
+        String relationshipStatus = "NONE";
+        UUID friendshipId = null;
+
+        if (currentUser != null) {
+            if (currentUser.getId().equals(user.getId())) {
+                relationshipStatus = "SELF";
+            } else {
+                Optional<com.example.backend.entity.Friendship> friendshipOpt = friendshipRepository.findBetween(currentUser, user);
+                if (friendshipOpt.isPresent()) {
+                    com.example.backend.entity.Friendship f = friendshipOpt.get();
+                    if (f.getStatus() == com.example.backend.entity.FriendshipStatus.ACCEPTED) {
+                        relationshipStatus = "FRIENDS";
+                    } else if (f.getStatus() == com.example.backend.entity.FriendshipStatus.PENDING) {
+                        if (f.getRequester().getId().equals(currentUser.getId())) {
+                            relationshipStatus = "PENDING_SENT";
+                        } else {
+                            relationshipStatus = "PENDING_RECEIVED";
+                            friendshipId = f.getId();
+                        }
+                    }
+                }
+            }
+        }
+
         return PublicUserProfileResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .createdAt(user.getCreatedAt())
                 .friendCount(friendCount)
                 .postCount(postCount)
+                .relationshipStatus(relationshipStatus)
+                .friendshipId(friendshipId)
                 .build();
     }
 

@@ -53,6 +53,181 @@
   text-decoration: underline;
 }
 
+/* Profile Actions Row */
+.profile-actions-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(71, 71, 84, 0.25);
+  flex-wrap: wrap;
+}
+
+.btn-secondary {
+  background: rgba(71, 71, 84, 0.35);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(71, 71, 84, 0.55);
+  border-color: var(--text-secondary);
+}
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-action-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-action-outline:hover {
+  background: rgba(124, 92, 255, 0.1);
+  border-color: var(--accent);
+}
+
+.profile-more-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-action-more {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition);
+}
+.btn-action-more:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+.profile-more-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: rgba(26, 29, 39, 0.98);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(16px);
+  z-index: 50;
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+}
+
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition);
+}
+.profile-menu-item:hover {
+  background: rgba(124, 92, 255, 0.15);
+}
+.profile-menu-item.danger {
+  color: var(--danger);
+}
+.profile-menu-item.danger:hover {
+  background: rgba(224, 92, 92, 0.15);
+}
+
+/* Blocked Banner */
+.blocked-banner {
+  background: rgba(224, 92, 92, 0.12);
+  border: 1px solid rgba(224, 92, 92, 0.35);
+  color: var(--danger);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Report Form */
+.report-select, .report-textarea {
+  width: 100%;
+  background: rgba(13, 13, 24, 0.7);
+  border: 1px solid rgba(71, 71, 84, 0.5);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+.report-select:focus, .report-textarea:focus {
+  border-color: var(--accent);
+}
+.report-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* Toast Messages */
+.toast-message {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: fadeIn 0.2s ease-in-out;
+}
+.toast-message.success {
+  background: rgba(76, 175, 125, 0.15);
+  border: 1px solid rgba(76, 175, 125, 0.4);
+  color: var(--success);
+}
+.toast-message.error {
+  background: rgba(224, 92, 92, 0.15);
+  border: 1px solid rgba(224, 92, 92, 0.4);
+  color: var(--danger);
+}
+.toast-message.info {
+  background: rgba(124, 92, 255, 0.15);
+  border: 1px solid rgba(124, 92, 255, 0.4);
+  color: var(--accent);
+}
+
 .posts-heading {
   font-size: 1rem;
   font-weight: 600;
