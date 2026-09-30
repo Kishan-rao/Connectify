@@ -19,9 +19,11 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Page<Post> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "group"})
-    @Query("SELECT p FROM Post p WHERE p.user = :user AND " +
-           "(p.group IS NULL OR p.group.type NOT IN :restrictedTypes OR p.group.id IN :visibleGroupIds) " +
-           "ORDER BY p.createdAt DESC")
+    @Query(value = "SELECT p FROM Post p LEFT JOIN p.group g WHERE p.user = :user AND " +
+           "(g IS NULL OR g.type NOT IN :restrictedTypes OR g.id IN :visibleGroupIds) " +
+           "ORDER BY p.createdAt DESC",
+           countQuery = "SELECT count(p) FROM Post p LEFT JOIN p.group g WHERE p.user = :user AND " +
+                        "(g IS NULL OR g.type NOT IN :restrictedTypes OR g.id IN :visibleGroupIds)")
     Page<Post> findVisibleByUser(@Param("user") User user,
                                  @Param("restrictedTypes") List<GroupType> restrictedTypes,
                                  @Param("visibleGroupIds") List<UUID> visibleGroupIds,

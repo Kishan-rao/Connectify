@@ -172,10 +172,11 @@ public class PostService {
         List<UUID> postIds = postsPage.getContent().stream().map(Post::getId).collect(Collectors.toList());
         Map<UUID, Long> likeCounts = bulkFetchLikeCounts(postIds);
         Map<UUID, Long> commentCounts = bulkFetchCommentCounts(postIds);
+        Set<UUID> userLikedPostIds = bulkFetchUserLikes(currentUser.getId(), postIds);
 
         List<PostResponse> content = postsPage.getContent().stream()
                 .map(post -> toResponse(post, currentUser.getId(), Collections.emptySet(), Collections.emptyMap(),
-                        likeCounts, commentCounts, Collections.emptySet()))
+                        likeCounts, commentCounts, userLikedPostIds))
                 .collect(Collectors.toList());
 
         return PagedResponse.<PostResponse>builder()

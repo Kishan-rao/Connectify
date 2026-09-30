@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import api from '../api/axiosClient';
 import '../styles/search.css';
@@ -64,15 +65,35 @@ export default function SearchPage() {
       <NavBar />
       <div className="search-container">
         <div className="search-bar-card">
-          <form onSubmit={(e) => { e.preventDefault(); handleSearch(0, true); }} className="search-input-wrapper">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSearch(0, true);
+            }}
+            className="search-input-wrapper"
+          >
             <input
               type="text"
               className="search-input"
               placeholder="Search users by username..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSearch(0, true);
+                }
+              }}
             />
-            <button type="submit" className="btn-primary" disabled={loading || !query.trim()}>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={loading || !query.trim()}
+              onClick={(e) => {
+                e.preventDefault();
+                handleSearch(0, true);
+              }}
+            >
               {loading ? 'Searching...' : 'Search'}
             </button>
           </form>
@@ -86,11 +107,13 @@ export default function SearchPage() {
             {results.map(u => (
               <div key={u.id} className="search-user-row">
                 <div className="search-user-info">
-                  <div className="avatar">{u.username[0].toUpperCase()}</div>
+                  <Link to={`/profile/${u.username}`} style={{ textDecoration: 'none' }}>
+                    <div className="avatar">{u.username[0].toUpperCase()}</div>
+                  </Link>
                   <div>
-                    <a href={`/profile/${u.username}`} className="search-user-name">
+                    <Link to={`/profile/${u.username}`} className="search-user-name">
                       @{u.username}
-                    </a>
+                    </Link>
                     <div className="search-user-meta">
                       {u.friendCount} {u.friendCount === 1 ? 'friend' : 'friends'}
                     </div>

@@ -55,7 +55,7 @@ class UserPrivacyTest {
     @Test
     void publicProfile_doesNotContainEmail() {
         when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
-        when(friendshipRepository.findAllAcceptedFriendships(alice)).thenReturn(List.of());
+        when(friendshipRepository.countAcceptedFriendships(alice)).thenReturn(0L);
         when(postRepository.countByUser(alice)).thenReturn(0L);
 
         PublicUserProfileResponse response = userService.getUserProfile("alice");
@@ -83,7 +83,7 @@ class UserPrivacyTest {
     void privateProfile_containsEmail() {
         Principal principal = () -> "alice";
         when(userRepository.findByUsernameOrEmail("alice", "alice")).thenReturn(Optional.of(alice));
-        when(friendshipRepository.findAllAcceptedFriendships(alice)).thenReturn(List.of());
+        when(friendshipRepository.countAcceptedFriendships(alice)).thenReturn(0L);
         when(postRepository.countByUser(alice)).thenReturn(3L);
 
         UserProfileResponse response = userService.getMyProfile(principal);
@@ -91,5 +91,25 @@ class UserPrivacyTest {
         assertThat(response.getEmail()).isEqualTo("alice@example.com");
         assertThat(response.getUsername()).isEqualTo("alice");
         assertThat(response.getPostCount()).isEqualTo(3L);
+    }
+
+    // ── User friends list ─────────────────────────────────────────────────────
+
+    @Test
+    void getUserFriends_returnsSummaryWithoutEmail() {
+        User bob = User.builder().id(UUID.randomUUID()).username("bob").email("bob@example.com").build();
+        com.example.backend.entity.Friendship friendship = com.example.backend.entity.Friendship.builder()
+                .requester(alice)
+                .addressee(bob)
+                .status(com.example.backend.entity.FriendshipStatus.ACCEPTED)
+                .build();
+
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
+        when(friendshipRepository.findAllAcceptedFriendships(alice)).thenReturn(List.of(friendship));
+
+        List<com.example.backend.dto.UserSummaryDto> friends = userService.getUserFriends("alice");
+        assertThat(friends).hasSize(1);
+        assertThat(friends.get(0).getUsername()).isEqualTo("bob");
+        assertThat(friends.get(0).getId()).isEqualTo(bob.getId());
     }
 }

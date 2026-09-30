@@ -42,4 +42,10 @@ public class UserController {
     public ResponseEntity<PublicUserProfileResponse> getUserProfile(@PathVariable String username) {
         return ResponseEntity.ok(userService.getUserProfile(username));
     }
+
+    /** Returns the list of friends for a user without email. */
+    @GetMapping("/{username}/friends")
+    public ResponseEntity<java.util.List<com.example.backend.dto.UserSummaryDto>> getUserFriends(@PathVariable String username) {
+        return ResponseEntity.ok(userService.getUserFriends(username));
+    }
 }

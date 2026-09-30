@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosClient';
 import '../styles/navbar.css';
@@ -78,8 +78,6 @@ export default function NavBar() {
     setShowNotifs(false);
     if (notif.postId) {
       navigate('/feed');
-    } else if (notif.friendshipId) {
-      navigate('/friends');
     } else if (notif.type === 'GROUP_INVITE') {
       navigate('/groups');
     } else if (notif.actor?.username) {
@@ -93,26 +91,45 @@ export default function NavBar() {
   };
 
   return (
-    <nav className="navbar">
+    <aside className="navbar">
       <Link to="/feed" className="nav-brand">
         <span className="logo-icon">⚡</span> Connectify
       </Link>
 
-      <div className="nav-links">
-        <Link to="/feed" className="nav-link">Feed</Link>
-        <Link to="/search" className="nav-link">Search</Link>
-        <Link to="/groups" className="nav-link">Groups</Link>
-        <Link to="/friends" className="nav-link">Friends</Link>
+      <nav className="nav-links">
+        <NavLink
+          to="/feed"
+          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+        >
+          <span className="nav-icon">🏠</span>
+          <span className="sidebar-link-text">Home</span>
+        </NavLink>
+
+        <NavLink
+          to="/search"
+          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+        >
+          <span className="nav-icon">🔍</span>
+          <span className="sidebar-link-text">Search</span>
+        </NavLink>
+
+        <NavLink
+          to="/groups"
+          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+        >
+          <span className="nav-icon">👥</span>
+          <span className="sidebar-link-text">Groups</span>
+        </NavLink>
 
         {/* Notifications Dropdown */}
         <div className="notif-wrapper" ref={dropdownRef}>
           <button
-            className="nav-link notif-btn"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative' }}
+            className={`sidebar-link notif-btn ${showNotifs ? 'active' : ''}`}
             onClick={toggleNotifs}
             aria-label="Notifications"
           >
-            🔔
+            <span className="nav-icon">🔔</span>
+            <span className="sidebar-link-text">Notifications</span>
             {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
 
@@ -153,12 +170,21 @@ export default function NavBar() {
           )}
         </div>
 
-        <Link to={`/profile/${user?.username}`} className="nav-link">
-          @{user?.username}
-        </Link>
-        <button onClick={handleLogout} className="btn-logout">Logout</button>
-      </div>
-    </nav>
+        <NavLink
+          to={`/profile/${user?.username}`}
+          className={({ isActive }) => `sidebar-link user-profile-link ${isActive ? 'active' : ''}`}
+        >
+          <div className="avatar sm" style={{ width: '26px', height: '26px', fontSize: '0.8rem' }}>
+            {user?.username?.[0]?.toUpperCase() || '?'}
+          </div>
+          <span className="sidebar-link-text">@{user?.username}</span>
+        </NavLink>
+
+        <button onClick={handleLogout} className="sidebar-link btn-sidebar-logout">
+          <span className="nav-icon">🚪</span>
+          <span className="sidebar-link-text">Logout</span>
+        </button>
+      </nav>
+    </aside>
   );
 }
-

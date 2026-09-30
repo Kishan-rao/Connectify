@@ -128,6 +128,18 @@ public class FriendshipService {
     }
 
     @Transactional(readOnly = true)
+    public List<UserSummaryDto> listUserFriends(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        return friendshipRepository.findAllAcceptedFriendships(user).stream()
+                .map(f -> {
+                    User friend = f.getRequester().getId().equals(user.getId()) ? f.getAddressee() : f.getRequester();
+                    return new UserSummaryDto(friend.getId(), friend.getUsername());
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<FriendshipResponse> listPendingReceived(Principal principal) {
         User user = userService.resolveUser(principal.getName());
         return friendshipRepository.findPendingRequests(user).stream()

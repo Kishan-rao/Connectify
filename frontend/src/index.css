@@ -45,7 +45,18 @@ a:hover { color: var(--accent-hover); }
 .page-layout {
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+}
+
+.page-layout > *:not(.navbar) {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .page-layout {
+    flex-direction: column;
+  }
 }
 
 /* Buttons */

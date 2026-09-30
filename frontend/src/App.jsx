@@ -4,7 +4,6 @@ import PrivateRoute from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import FeedPage from './pages/FeedPage';
-import FriendsPage from './pages/FriendsPage';
 import ProfilePage from './pages/ProfilePage';
 import SearchPage from './pages/SearchPage';
 import GroupsPage from './pages/GroupsPage';
@@ -25,8 +24,8 @@ export default function App() {
           <Route path="/search" element={<PrivateRoute><SearchPage /></PrivateRoute>} />
           <Route path="/groups" element={<PrivateRoute><GroupsPage /></PrivateRoute>} />
           <Route path="/groups/:id" element={<PrivateRoute><GroupDetailPage /></PrivateRoute>} />
-          <Route path="/friends" element={<PrivateRoute><FriendsPage /></PrivateRoute>} />
           <Route path="/profile/:username" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+          <Route path="/friends" element={<Navigate to="/feed" replace />} />
 
           {/* Default redirect */}
           <Route path="*" element={<Navigate to="/login" replace />} />

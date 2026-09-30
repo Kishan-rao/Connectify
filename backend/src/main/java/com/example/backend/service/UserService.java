@@ -115,8 +115,20 @@ public class UserService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public List<com.example.backend.dto.UserSummaryDto> getUserFriends(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        return friendshipRepository.findAllAcceptedFriendships(user).stream()
+                .map(f -> {
+                    User friend = f.getRequester().getId().equals(user.getId()) ? f.getAddressee() : f.getRequester();
+                    return new com.example.backend.dto.UserSummaryDto(friend.getId(), friend.getUsername());
+                })
+                .collect(Collectors.toList());
+    }
+
     private UserProfileResponse buildPrivateProfile(User user) {
-        long friendCount = friendshipRepository.findAllAcceptedFriendships(user).size();
+        long friendCount = friendshipRepository.countAcceptedFriendships(user);
         long postCount = postRepository.countByUser(user);
         return UserProfileResponse.builder()
                 .id(user.getId())
@@ -129,7 +141,7 @@ public class UserService {
     }
 
     private PublicUserProfileResponse buildPublicProfile(User user) {
-        long friendCount = friendshipRepository.findAllAcceptedFriendships(user).size();
+        long friendCount = friendshipRepository.countAcceptedFriendships(user);
         long postCount = postRepository.countByUser(user);
         return PublicUserProfileResponse.builder()
                 .id(user.getId())
