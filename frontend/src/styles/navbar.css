@@ -1,5 +1,5 @@
 /* ============================================================
-   Sidebar Navbar (X-Style Left Sidebar)
+   Sidebar Navbar (X-Style Left Sidebar) — Light Warm-Cream Theme
    ============================================================ */
 .navbar {
   position: sticky;
@@ -8,7 +8,7 @@
   width: 250px;
   min-width: 250px;
   max-width: 250px;
-  background: var(--bg-surface);
+  background: var(--bg-sidebar);
   border-right: 1px solid var(--border);
   border-bottom: none;
   display: flex;
@@ -33,10 +33,11 @@
   transition: background var(--transition);
 }
 .nav-brand:hover {
-  background: rgba(124, 92, 255, 0.08);
+  background: #F3F0FF;
 }
 .nav-brand .logo-icon {
   font-size: 1.4rem;
+  color: var(--primary);
 }
 
 .nav-links {
@@ -52,7 +53,7 @@
   gap: 0.9rem;
   padding: 0.75rem 1rem;
   border-radius: 9999px;
-  color: var(--text-secondary) !important;
+  color: var(--text-primary) !important;
   font-size: 1.02rem;
   font-weight: 500;
   text-decoration: none;
@@ -66,13 +67,13 @@
 }
 
 .sidebar-link:hover {
-  background: rgba(124, 92, 255, 0.12);
+  background: #F3F0FF;
   color: var(--text-primary) !important;
 }
 
 .sidebar-link.active {
-  background: rgba(124, 92, 255, 0.2);
-  color: var(--accent) !important;
+  background: var(--primary-light);
+  color: var(--primary) !important;
   font-weight: 600;
 }
 
@@ -83,6 +84,11 @@
   justify-content: center;
   width: 26px;
   flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.sidebar-link.active .nav-icon {
+  color: var(--primary);
 }
 
 .sidebar-link-text {
@@ -106,8 +112,8 @@
 }
 
 .btn-sidebar-logout:hover {
-  background: rgba(224, 92, 92, 0.15);
-  color: var(--danger) !important;
+  background: var(--error-bg);
+  color: var(--error) !important;
 }
 
 /* Notifications in Sidebar */
@@ -121,7 +127,7 @@
 }
 
 .notif-badge {
-  background: var(--danger);
+  background: var(--primary);
   color: #fff;
   font-size: 0.72rem;
   font-weight: 700;
@@ -137,11 +143,10 @@
   left: calc(100% + 12px);
   width: 360px;
   max-height: 480px;
-  background: rgba(26, 29, 39, 0.98);
+  background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-lg);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -163,6 +168,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 1rem;
+    background: var(--bg-sidebar);
   }
 
   .nav-brand {

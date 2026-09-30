@@ -1,5 +1,5 @@
 /* ============================================================
-   Feed Layout
+   Feed Layout — Light Warm-Cream Theme
    ============================================================ */
 .feed-container {
   max-width: 680px;
@@ -15,22 +15,21 @@
    Create Post Card
    ============================================================ */
 .create-post-card {
-  background: rgba(24, 24, 38, 0.85);
-  border: 1px solid rgba(124, 58, 237, 0.18);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 4px 40px rgba(124, 58, 237, 0.06);
-  transition: border-color 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .create-post-card:focus-within {
-  border-color: rgba(124, 58, 237, 0.45);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08), 0 4px 40px rgba(124, 58, 237, 0.08);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(109, 92, 231, 0.12), var(--shadow-sm);
 }
 .create-post-card textarea {
   width: 100%;
-  background: rgba(13, 13, 24, 0.7);
-  border: 1px solid rgba(71, 71, 84, 0.5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-input);
   border-radius: 10px;
   padding: 10px 14px;
   color: var(--text-primary);
@@ -39,10 +38,13 @@
   resize: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+.create-post-card textarea::placeholder {
+  color: var(--text-muted);
+}
 .create-post-card textarea:focus {
   outline: none;
-  border-color: #7C3AED;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(109, 92, 231, 0.12);
 }
 .post-actions {
   display: flex;
@@ -53,20 +55,19 @@
 .char-count { color: var(--text-muted); font-size: 0.8rem; }
 
 /* ============================================================
-   Post Card — Glassmorphism (Stitch-designed)
+   Post Card — Clean Light Surfaces
    ============================================================ */
 .post-card {
-  background: rgba(24, 24, 38, 0.75);
-  border: 1px solid rgba(71, 71, 84, 0.35);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-sm);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 .post-card:hover {
-  border-color: rgba(124, 58, 237, 0.4);
-  box-shadow: 0 8px 48px rgba(124, 58, 237, 0.1), 0 0 0 0.5px rgba(189, 157, 255, 0.15);
+  border-color: rgba(109, 92, 231, 0.4);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
@@ -76,7 +77,8 @@
   gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
-.post-author { font-weight: 600; font-size: 0.9rem; }
+.post-author { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); }
+.post-author:hover { color: var(--primary); }
 .post-time { display: block; color: var(--text-muted); font-size: 0.78rem; margin-top: 0.1rem; }
 .post-content { color: var(--text-primary); line-height: 1.7; font-size: 0.95rem; }
 
@@ -85,7 +87,7 @@
    ============================================================ */
 .post-card-divider {
   height: 1px;
-  background: rgba(71, 71, 84, 0.3);
+  background: var(--border);
   margin: 1rem 0 0.6rem;
 }
 
@@ -99,16 +101,16 @@
   background: none;
   border: none;
   padding: 0;
-  color: #a67aff;
+  color: var(--primary);
   font-size: 0.78rem;
   font-family: inherit;
   cursor: pointer;
   letter-spacing: 0.01em;
   transition: color 0.2s ease, opacity 0.2s ease;
-  opacity: 0.7;
+  opacity: 0.85;
 }
 .why-seeing-this-btn:hover {
-  color: #bd9dff;
+  color: var(--primary-hover);
   opacity: 1;
 }
 
@@ -135,8 +137,8 @@
   align-items: flex-start;
   gap: 0.65rem;
   padding: 0.75rem 0.9rem;
-  background: rgba(124, 58, 237, 0.08);
-  border-left: 2px solid rgba(124, 58, 237, 0.55);
+  background: var(--primary-light);
+  border-left: 3px solid var(--primary);
   border-radius: 0 8px 8px 0;
   position: relative;
 }
@@ -145,13 +147,14 @@
   font-size: 1rem;
   flex-shrink: 0;
   margin-top: 0.05rem;
+  color: var(--primary);
 }
 
 .feed-explanation-text {
   margin: 0;
   font-size: 0.82rem;
   font-style: italic;
-  color: #aba9b9;
+  color: var(--text-secondary);
   line-height: 1.55;
   flex: 1;
 }
@@ -160,7 +163,7 @@
   flex-shrink: 0;
   background: none;
   border: none;
-  color: #757482;
+  color: var(--text-secondary);
   font-size: 1.1rem;
   line-height: 1;
   cursor: pointer;
@@ -169,7 +172,7 @@
   align-self: flex-start;
 }
 .feed-explanation-close:hover {
-  color: #bd9dff;
+  color: var(--primary);
 }
 
 /* ============================================================
@@ -177,9 +180,9 @@
    ============================================================ */
 .post-group-tag {
   display: inline-block;
-  background: rgba(124, 58, 237, 0.18);
-  border: 1px solid rgba(124, 58, 237, 0.4);
-  color: #bd9dff;
+  background: var(--primary-light);
+  border: 1px solid rgba(109, 92, 231, 0.3);
+  color: var(--primary);
   border-radius: 6px;
   padding: 2px 8px;
   font-size: 0.75rem;
@@ -193,7 +196,7 @@
   gap: 1rem;
   margin-top: 0.85rem;
   padding-top: 0.6rem;
-  border-top: 1px solid rgba(71, 71, 84, 0.25);
+  border-top: 1px solid var(--border);
 }
 
 .interaction-btn {
@@ -213,18 +216,18 @@
 }
 
 .interaction-btn:hover {
-  background: rgba(124, 58, 237, 0.1);
-  color: var(--text-primary);
+  background: #F3F0FF;
+  color: var(--primary);
 }
 
 .interaction-btn.liked {
-  color: #ff6584;
+  color: #EF4444;
 }
 
 .comments-drawer {
   margin-top: 0.85rem;
   padding-top: 0.75rem;
-  border-top: 1px dashed rgba(71, 71, 84, 0.35);
+  border-top: 1px dashed var(--border);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -242,7 +245,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: rgba(13, 13, 24, 0.5);
+  background: #FAF7F2;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 12px;
 }
@@ -250,7 +254,7 @@
 .comment-author {
   font-weight: 600;
   font-size: 0.82rem;
-  color: var(--accent);
+  color: var(--primary);
 }
 
 .comment-text {
@@ -271,8 +275,8 @@
 }
 
 .comment-delete-btn:hover {
-  color: var(--danger);
-  background: rgba(224, 92, 92, 0.15);
+  color: var(--error);
+  background: var(--error-bg);
 }
 
 .add-comment-form {
@@ -282,24 +286,30 @@
 
 .add-comment-input {
   flex: 1;
-  background: rgba(13, 13, 24, 0.7);
-  border: 1px solid rgba(71, 71, 84, 0.5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-input);
   border-radius: 8px;
   padding: 8px 12px;
   color: var(--text-primary);
   font-size: 0.85rem;
   outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.add-comment-input::placeholder {
+  color: var(--text-muted);
 }
 
 .add-comment-input:focus {
-  border-color: var(--accent);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(109, 92, 231, 0.12);
 }
 
 .btn-load-more {
   align-self: center;
   background: transparent;
-  border: 1px solid rgba(124, 58, 237, 0.4);
-  color: #a67aff;
+  border: 1px solid var(--primary);
+  color: var(--primary);
   border-radius: 50px;
   padding: 10px 32px;
   cursor: pointer;
@@ -310,8 +320,8 @@
               background 0.2s ease, box-shadow 0.2s ease;
 }
 .btn-load-more:hover {
-  border-color: #7C3AED;
-  color: #bd9dff;
-  background: rgba(124, 58, 237, 0.08);
-  box-shadow: 0 0 16px rgba(124, 58, 237, 0.15);
+  border-color: var(--primary-hover);
+  color: var(--primary-hover);
+  background: #F3F0FF;
+  box-shadow: var(--shadow-sm);
 }

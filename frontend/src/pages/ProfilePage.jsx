@@ -361,9 +361,9 @@ export default function ProfilePage() {
               <button
                 className="btn-danger"
                 style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.4)',
-                  color: '#ef4444',
+                  background: 'var(--error-bg)',
+                  border: '1px solid var(--error-border)',
+                  color: 'var(--error-text)',
                   padding: '6px 12px',
                   borderRadius: '8px',
                   cursor: 'pointer',

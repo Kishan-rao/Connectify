@@ -1,10 +1,10 @@
-/* Auth Pages */
+/* Auth Pages — Light Warm-Cream Theme */
 .auth-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at top, #1c1438 0%, var(--bg-base) 60%);
+  background-color: var(--bg-primary);
   padding: 1.5rem;
 }
 
@@ -15,7 +15,7 @@
   padding: 2.5rem;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  box-shadow: var(--shadow-md);
 }
 
 .auth-logo {
@@ -25,12 +25,14 @@
 .auth-logo h1 {
   font-size: 1.8rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #a78bfa, var(--accent));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
 }
-.logo-icon { font-size: 2rem; display: block; margin-bottom: 0.25rem; }
+.auth-logo .logo-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--primary);
+}
 
 .auth-subtitle {
   text-align: center;
@@ -44,26 +46,29 @@
 .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
 .form-group label { font-size: 0.82rem; font-weight: 500; color: var(--text-secondary); }
 .form-group input {
-  background: var(--bg-base);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
   padding: 10px 14px;
   color: var(--text-primary);
   font-size: 0.9rem;
   transition: border-color var(--transition), box-shadow var(--transition);
 }
+.form-group input::placeholder {
+  color: var(--text-muted);
+}
 .form-group input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(109, 92, 231, 0.12);
 }
 
 .auth-error {
-  background: rgba(224, 92, 92, 0.15);
-  border: 1px solid rgba(224, 92, 92, 0.4);
-  border-radius: 8px;
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: var(--radius-sm);
   padding: 10px 14px;
-  color: var(--danger);
+  color: var(--error-text);
   font-size: 0.85rem;
 }
 
@@ -84,4 +89,18 @@
   transition: color 0.2s ease;
 }
 
-.auth-switch { text-align: center; margin-top: 1.25rem; color: var(--text-secondary); font-size: 0.88rem; }
+.auth-switch {
+  text-align: center;
+  margin-top: 1.25rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.auth-switch a {
+  color: var(--primary);
+  font-weight: 500;
+}
+.auth-switch a:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}

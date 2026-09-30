@@ -1,3 +1,4 @@
+/* Search Page — Light Warm-Cream Theme */
 .search-container {
   max-width: 680px;
   margin: 2rem auto;
@@ -14,12 +15,11 @@
 }
 
 .search-bar-card {
-  background: rgba(24, 24, 38, 0.85);
-  border: 1px solid rgba(124, 58, 237, 0.2);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 .search-input-wrapper {
@@ -30,8 +30,8 @@
 
 .search-input {
   flex: 1;
-  background: rgba(13, 13, 24, 0.7);
-  border: 1px solid rgba(71, 71, 84, 0.5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-input);
   border-radius: 10px;
   padding: 12px 16px;
   color: var(--text-primary);
@@ -40,9 +40,13 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
 .search-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(109, 92, 231, 0.12);
 }
 
 /* Autocomplete Dropdown */
@@ -51,11 +55,10 @@
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  background: rgba(26, 29, 39, 0.98);
+  background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-md);
   z-index: 100;
   max-height: 400px;
   overflow-y: auto;
@@ -73,7 +76,7 @@
   gap: 0.85rem;
   padding: 0.85rem 1.25rem;
   cursor: pointer;
-  border-bottom: 1px solid rgba(71, 71, 84, 0.2);
+  border-bottom: 1px solid var(--border);
   transition: background 0.15s ease;
 }
 
@@ -83,7 +86,7 @@
 
 .search-dropdown-item:hover,
 .search-dropdown-item.selected {
-  background: rgba(124, 92, 255, 0.18);
+  background: #F3F0FF;
 }
 
 .search-dropdown-info {
@@ -128,19 +131,19 @@
 }
 
 .badge-status.friends {
-  background: rgba(76, 175, 125, 0.15);
-  color: var(--success);
-  border: 1px solid rgba(76, 175, 125, 0.3);
+  background: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
 }
 
 .badge-status.pending {
-  background: rgba(234, 179, 8, 0.15);
-  color: #eab308;
-  border: 1px solid rgba(234, 179, 8, 0.3);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border);
 }
 
 .badge-status.self {
-  background: rgba(124, 92, 255, 0.15);
-  color: var(--accent);
-  border: 1px solid rgba(124, 92, 255, 0.3);
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid rgba(109, 92, 231, 0.3);
 }

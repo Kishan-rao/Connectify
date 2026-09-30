@@ -301,9 +301,10 @@ export default function GroupDetailPage() {
           <div
             className="empty-state"
             style={{
-              background: 'rgba(24, 24, 38, 0.8)',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius)',
-              border: '1px solid rgba(71, 71, 84, 0.35)',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-sm)',
               padding: '2.5rem 1.5rem'
             }}
           >
@@ -394,7 +395,8 @@ export default function GroupDetailPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.4rem',
-                        background: 'rgba(13, 13, 24, 0.6)',
+                        background: '#FAF7F2',
+                        border: '1px solid var(--border)',
                         padding: '4px 10px',
                         borderRadius: '20px',
                         fontSize: '0.85rem',

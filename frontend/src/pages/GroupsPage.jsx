@@ -201,8 +201,8 @@ export default function GroupsPage() {
                 value={type}
                 onChange={e => setType(e.target.value)}
                 style={{
-                  background: 'rgba(13, 13, 24, 0.7)',
-                  border: '1px solid rgba(71, 71, 84, 0.5)',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-input)',
                   borderRadius: '10px',
                   padding: '0 1rem',
                   color: 'var(--text-primary)',
