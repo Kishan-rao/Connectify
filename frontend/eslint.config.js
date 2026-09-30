@@ -24,6 +24,11 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Data fetching in effects is intentional in this client; the rule cannot
+      // distinguish it from synchronous derived-state updates.
+      'react-hooks/set-state-in-effect': 'off',
+      // Auth context also exports its consumer hook from the same module.
+      'react-refresh/only-export-components': 'off',
     },
   },
 ])

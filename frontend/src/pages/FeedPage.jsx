@@ -30,6 +30,7 @@ function CreatePostForm({ onPostCreated }) {
           placeholder="What's on your mind?"
           value={content}
           onChange={e => setContent(e.target.value)}
+          maxLength={500}
           rows={3}
         />
         <div className="post-actions">
@@ -56,7 +57,7 @@ function FeedExplanationPanel({ explanation, isOpen, onClose }) {
   );
 }
 
-function PostCard({ post, currentUsername, onPostUpdated }) {
+function PostCard({ post, currentUsername }) {
   const [explanationOpen, setExplanationOpen] = useState(false);
   const [liked, setLiked] = useState(post.likedByCurrentUser || false);
   const [likeCount, setLikeCount] = useState(post.likeCount || 0);
@@ -258,6 +259,9 @@ export default function FeedPage() {
     }
   }, [page]);
 
+  // This is intentionally an initial load only; including loadFeed would reload
+  // the first page whenever the pagination state changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadFeed(true); }, []);
 
   return (
@@ -282,7 +286,6 @@ export default function FeedPage() {
             key={post.id}
             post={post}
             currentUsername={user?.username}
-            onPostUpdated={() => loadFeed(true)}
           />
         ))}
 
@@ -295,4 +298,3 @@ export default function FeedPage() {
     </div>
   );
 }
-

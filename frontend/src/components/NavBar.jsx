@@ -18,7 +18,7 @@ export default function NavBar() {
     try {
       const { data } = await api.get('/api/notifications/unread-count');
       setUnreadCount(data.unreadCount || 0);
-    } catch (e) {
+    } catch {
       // ignore
     }
   };
@@ -27,7 +27,7 @@ export default function NavBar() {
     try {
       const { data } = await api.get('/api/notifications?page=0&size=10');
       setNotifications(data.content || []);
-    } catch (e) {
+    } catch {
       // ignore
     }
   };
@@ -60,7 +60,7 @@ export default function NavBar() {
       await api.put('/api/notifications/read-all');
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    } catch (e) {
+    } catch {
       // ignore
     }
   };
@@ -71,7 +71,7 @@ export default function NavBar() {
         await api.put(`/api/notifications/${notif.id}/read`);
         setUnreadCount(c => Math.max(0, c - 1));
         setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
@@ -80,6 +80,8 @@ export default function NavBar() {
       navigate('/feed');
     } else if (notif.friendshipId) {
       navigate('/friends');
+    } else if (notif.type === 'GROUP_INVITE') {
+      navigate('/groups');
     } else if (notif.actor?.username) {
       navigate(`/profile/${notif.actor.username}`);
     }

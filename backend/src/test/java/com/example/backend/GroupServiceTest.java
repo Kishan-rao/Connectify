@@ -164,20 +164,132 @@ class GroupServiceTest {
     }
 
     @Test
-    void member_viewingPrivateGroup_seesFullDetails() {
-        GroupResponse created = groupService.createGroup(
+    void publicGroup_detailsAccessibleToNonMember() {
+        GroupResponse publicGroup = groupService.createGroup(
                 principal(alice),
-                new GroupCreateRequest("AlicesSecret", "Alice secret", GroupType.PRIVATE)
+                new GroupCreateRequest("PublicCommunity", "Open for all discussions", GroupType.PUBLIC)
         );
-        // alice is a member (creator)
-        GroupResponse aliceView = groupService.getGroup(principal(alice), created.getId());
+        postService.createPost(principal(alice), PostCreateRequest.builder()
+                .content("Welcome to public community!")
+                .groupId(publicGroup.getId())
+                .build());
 
-        assertThat(aliceView.getId()).isEqualTo(created.getId());
-        assertThat(aliceView.getName()).isEqualTo("AlicesSecret");
-        assertThat(aliceView.getType()).isEqualTo(GroupType.PRIVATE);
-        assertThat(aliceView.getDescription()).isEqualTo("Alice secret");
+        // Bob is a non-member
+        GroupResponse bobView = groupService.getGroup(principal(bob), publicGroup.getId());
+        assertThat(bobView.getDescription()).isEqualTo("Open for all discussions");
+        assertThat(bobView.getMemberCount()).isEqualTo(1L);
+        assertThat(bobView.getCreatedBy()).isNotNull();
+        assertThat(bobView.isMember()).isFalse();
+
+        // Non-member can view members and posts
+        assertThat(groupService.getMembers(principal(bob), publicGroup.getId())).hasSize(1);
+        assertThat(groupService.getGroupPosts(principal(bob), publicGroup.getId(), 0, 10).getContent()).hasSize(1);
+    }
+
+    @Test
+    void privateGroup_detailsInaccessibleToNonMember() {
+        GroupResponse privateGroup = groupService.createGroup(
+                principal(alice),
+                new GroupCreateRequest("PrivateAlpha", "Restricted confidential notes", GroupType.PRIVATE)
+        );
+        postService.createPost(principal(alice), PostCreateRequest.builder()
+                .content("Confidential post")
+                .groupId(privateGroup.getId())
+                .build());
+
+        // Bob is a non-member
+        GroupResponse bobView = groupService.getGroup(principal(bob), privateGroup.getId());
+        assertThat(bobView.getId()).isEqualTo(privateGroup.getId());
+        assertThat(bobView.getName()).isEqualTo("PrivateAlpha");
+        assertThat(bobView.getType()).isEqualTo(GroupType.PRIVATE);
+        assertThat(bobView.getDescription()).isNull();
+        assertThat(bobView.getMemberCount()).isNull();
+        assertThat(bobView.getCreatedBy()).isNull();
+        assertThat(bobView.isMember()).isFalse();
+
+        // Non-member cannot access members, posts, or join directly
+        assertThatThrownBy(() -> groupService.getMembers(principal(bob), privateGroup.getId()))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> groupService.getGroupPosts(principal(bob), privateGroup.getId(), 0, 10))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> groupService.joinGroup(principal(bob), privateGroup.getId()))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void privateGroup_detailsAccessibleToMember() {
+        GroupResponse privateGroup = groupService.createGroup(
+                principal(alice),
+                new GroupCreateRequest("PrivateBeta", "Beta member notes", GroupType.PRIVATE)
+        );
+        postService.createPost(principal(alice), PostCreateRequest.builder()
+                .content("Beta secret post")
+                .groupId(privateGroup.getId())
+                .build());
+
+        // Alice is a member
+        GroupResponse aliceView = groupService.getGroup(principal(alice), privateGroup.getId());
+        assertThat(aliceView.getDescription()).isEqualTo("Beta member notes");
         assertThat(aliceView.getMemberCount()).isEqualTo(1L);
         assertThat(aliceView.getCreatedBy()).isNotNull();
+        assertThat(aliceView.isMember()).isTrue();
+
+        // Member can access members and posts
+        assertThat(groupService.getMembers(principal(alice), privateGroup.getId())).hasSize(1);
+        assertThat(groupService.getGroupPosts(principal(alice), privateGroup.getId(), 0, 10).getContent()).hasSize(1);
+    }
+
+    @Test
+    void closedGroup_detailsInaccessibleToNonMember() {
+        GroupResponse closedGroup = groupService.createGroup(
+                principal(alice),
+                new GroupCreateRequest("ClosedAlpha", "Closed member notes", GroupType.CLOSED)
+        );
+        postService.createPost(principal(alice), PostCreateRequest.builder()
+                .content("Closed discussion")
+                .groupId(closedGroup.getId())
+                .build());
+
+        // Bob is a non-member
+        GroupResponse bobView = groupService.getGroup(principal(bob), closedGroup.getId());
+        assertThat(bobView.getId()).isEqualTo(closedGroup.getId());
+        assertThat(bobView.getName()).isEqualTo("ClosedAlpha");
+        assertThat(bobView.getType()).isEqualTo(GroupType.CLOSED);
+        assertThat(bobView.getDescription()).isNull();
+        assertThat(bobView.getMemberCount()).isNull();
+        assertThat(bobView.getCreatedBy()).isNull();
+        assertThat(bobView.isMember()).isFalse();
+
+        // Non-member cannot access members, posts, or join directly
+        assertThatThrownBy(() -> groupService.getMembers(principal(bob), closedGroup.getId()))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> groupService.getGroupPosts(principal(bob), closedGroup.getId(), 0, 10))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> groupService.joinGroup(principal(bob), closedGroup.getId()))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void closedGroup_detailsAccessibleToMember() {
+        GroupResponse closedGroup = groupService.createGroup(
+                principal(alice),
+                new GroupCreateRequest("ClosedBeta", "Closed member secrets", GroupType.CLOSED)
+        );
+        postService.createPost(principal(alice), PostCreateRequest.builder()
+                .content("Closed group post")
+                .groupId(closedGroup.getId())
+                .build());
+
+        // Alice is a member
+        GroupResponse aliceView = groupService.getGroup(principal(alice), closedGroup.getId());
+        assertThat(aliceView.getDescription()).isEqualTo("Closed member secrets");
+        assertThat(aliceView.getMemberCount()).isEqualTo(1L);
+        assertThat(aliceView.getCreatedBy()).isNotNull();
+        assertThat(aliceView.isMember()).isTrue();
+
+        // Member can access members and posts
+        assertThat(groupService.getMembers(principal(alice), closedGroup.getId())).hasSize(1);
+        assertThat(groupService.getGroupPosts(principal(alice), closedGroup.getId(), 0, 10).getContent()).hasSize(1);
     }
 
     @Test
