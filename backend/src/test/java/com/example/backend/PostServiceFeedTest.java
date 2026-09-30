@@ -2,6 +2,8 @@ package com.example.backend;
 
 import com.example.backend.dto.PagedResponse;
 import com.example.backend.dto.PostResponse;
+import com.example.backend.entity.Group;
+import com.example.backend.entity.GroupType;
 import com.example.backend.entity.Post;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
@@ -34,6 +36,7 @@ class PostServiceFeedTest {
     @Mock GroupRepository groupRepository;
     @Mock PostLikeRepository postLikeRepository;
     @Mock CommentRepository commentRepository;
+    @Mock NotificationRepository notificationRepository;
     @Mock UserRepository userRepository;
 
     PostService postService;
@@ -47,7 +50,7 @@ class PostServiceFeedTest {
     void setUp() {
         userService = new UserService(userRepository, friendshipRepository, postRepository);
         postService = new PostService(postRepository, friendshipRepository, groupMembershipRepository,
-                groupRepository, postLikeRepository, commentRepository, userService, userRepository);
+                groupRepository, postLikeRepository, commentRepository, notificationRepository, userService, userRepository);
 
         currentUser = user("current");
         friendUser  = user("friend");
@@ -81,12 +84,24 @@ class PostServiceFeedTest {
 
     @Test
     void groupMemberPost_explanation_isGroup() {
-        UUID gmId = groupMemberUser.getId();
-        setupFeed(currentUser,
-                List.of(),
-                List.of(gmId),
-                Map.of(gmId, "Photography Club"),
-                List.of(post(groupMemberUser)));
+        UUID groupId = UUID.randomUUID();
+        Group club = Group.builder()
+                .id(groupId)
+                .name("Photography Club")
+                .type(GroupType.OPEN)
+                .build();
+        Post groupPost = post(groupMemberUser);
+        groupPost.setGroup(club);
+
+        when(userRepository.findByUsernameOrEmail(any(), any())).thenReturn(Optional.of(currentUser));
+        when(friendshipRepository.findFriendIds(currentUser.getId())).thenReturn(List.of());
+        when(groupMembershipRepository.findGroupIdsByUserId(currentUser.getId()))
+                .thenReturn(List.of(groupId));
+        var pageImpl = new PageImpl<>(List.of(groupPost), PageRequest.of(0, 20), 1);
+        when(postRepository.findUnifiedFeed(any(), any(), any())).thenReturn(pageImpl);
+        when(postLikeRepository.countLikesByPostIds(any())).thenReturn(List.of());
+        when(commentRepository.countCommentsByPostIds(any())).thenReturn(List.of());
+        when(postLikeRepository.findLikedPostIdsByUserIdAndPostIds(any(), any())).thenReturn(List.of());
 
         PagedResponse<PostResponse> feed = postService.getFeed(principalFor(currentUser), 0, 20);
 
@@ -120,6 +135,9 @@ class PostServiceFeedTest {
 
         assertThatNoException().isThrownBy(() ->
                 postService.deletePost(principalFor(currentUser), ownPost.getId()));
+        verify(notificationRepository).deleteByPost(ownPost);
+        verify(commentRepository).deleteByPost(ownPost);
+        verify(postLikeRepository).deleteByPost(ownPost);
         verify(postRepository).delete(ownPost);
     }
 
@@ -148,15 +166,7 @@ class PostServiceFeedTest {
                            Map<UUID, String> groupNameMap, List<Post> posts) {
         when(userRepository.findByUsernameOrEmail(any(), any())).thenReturn(Optional.of(current));
         when(friendshipRepository.findFriendIds(current.getId())).thenReturn(friendIds);
-        when(groupMembershipRepository.findGroupMemberUserIds(current.getId())).thenReturn(groupMemberIds);
         when(groupMembershipRepository.findGroupIdsByUserId(current.getId())).thenReturn(List.of());
-
-        if (!groupMemberIds.isEmpty()) {
-            List<Object[]> rows = new ArrayList<>();
-            groupNameMap.forEach((uid, name) -> rows.add(new Object[]{uid, name}));
-            when(groupMembershipRepository.findSharedGroupNamesByUserIds(eq(current.getId()), any()))
-                    .thenReturn(rows);
-        }
 
         var pageImpl = new PageImpl<>(posts, PageRequest.of(0, 20), posts.size());
         when(postRepository.findFeedByAuthorIds(any(), any())).thenReturn(pageImpl);

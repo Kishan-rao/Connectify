@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import jakarta.validation.ConstraintViolationException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -29,6 +30,18 @@ public class GlobalExceptionHandler {
                 .message("Validation failed")
                 .timestamp(LocalDateTime.now())
                 .errors(fieldErrors)
+                .build();
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    /** 400 — Invalid constrained request parameter, such as pagination bounds. */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now())
                 .build();
 
         return ResponseEntity.badRequest().body(response);

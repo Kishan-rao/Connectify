@@ -119,6 +119,7 @@ public class NotificationService {
             case FRIEND_REQUEST_ACCEPTED -> actorName + " accepted your friend request.";
             case POST_LIKED -> actorName + " liked your post.";
             case POST_COMMENTED -> actorName + " commented on your post.";
+            case GROUP_INVITE -> actorName + " invited you to join a group.";
         };
     }
 }

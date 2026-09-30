@@ -31,6 +31,7 @@ public class PostService {
     private final GroupRepository groupRepository;
     private final PostLikeRepository postLikeRepository;
     private final CommentRepository commentRepository;
+    private final NotificationRepository notificationRepository;
     private final UserService userService;
     private final UserRepository userRepository;
 
@@ -81,6 +82,11 @@ public class PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + requiredPostId));
         if (!post.getUser().getId().equals(user.getId()))
             throw new AccessDeniedException("You can only delete your own posts.");
+
+        // Child tables hold foreign keys to posts, so remove them before the post.
+        notificationRepository.deleteByPost(post);
+        commentRepository.deleteByPost(post);
+        postLikeRepository.deleteByPost(post);
         postRepository.delete(post);
     }
 
@@ -112,31 +118,12 @@ public class PostService {
 
         // 2. Bulk-fetch groups the user belongs to
         List<UUID> myGroupIds = groupMembershipRepository.findGroupIdsByUserId(currentUserId);
-        Set<UUID> myGroupIdSet = new HashSet<>(myGroupIds);
 
-        // 3. Bulk-fetch group-member user IDs
-        Set<UUID> groupMemberIds = new HashSet<>(groupMembershipRepository.findGroupMemberUserIds(currentUserId));
-        groupMemberIds.remove(currentUserId);
-        groupMemberIds.removeAll(friendIds);
-
-        // 4. Bulk-fetch group name map for group members
-        Map<UUID, String> groupMemberGroupName;
-        if (!groupMemberIds.isEmpty()) {
-            List<Object[]> rows = groupMembershipRepository.findSharedGroupNamesByUserIds(
-                    currentUserId, new ArrayList<>(groupMemberIds));
-            groupMemberGroupName = rows.stream()
-                    .collect(Collectors.toMap(
-                            r -> (UUID) r[0],
-                            r -> (String) r[1]));
-        } else {
-            groupMemberGroupName = Collections.emptyMap();
-        }
-
-        // 5. Combined author IDs
+        // 3. Personal posts are visible only from the current user and direct friends.
+        // Shared-group members contribute only posts made inside a group the viewer belongs to.
         Set<UUID> allAuthorIds = new LinkedHashSet<>();
         allAuthorIds.add(currentUserId);
         allAuthorIds.addAll(friendIds);
-        allAuthorIds.addAll(groupMemberIds);
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Post> feedPage;
@@ -155,8 +142,8 @@ public class PostService {
 
         // 7. Map to response in memory
         List<PostResponse> content = feedPage.getContent().stream()
-                .map(post -> toResponse(post, currentUserId, friendIds, groupMemberGroupName,
-                        likeCounts, commentCounts, userLikedPostIds, myGroupIdSet))
+                .map(post -> toResponse(post, currentUserId, friendIds, Collections.emptyMap(),
+                        likeCounts, commentCounts, userLikedPostIds))
                 .collect(Collectors.toList());
 
         return PagedResponse.<PostResponse>builder()
@@ -169,19 +156,26 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<PostResponse> getUserPosts(String username, int page, int size) {
+    public PagedResponse<PostResponse> getUserPosts(Principal principal, String username, int page, int size) {
+        User currentUser = userService.resolveUser(principal.getName());
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         Pageable pageable = PageRequest.of(page, size);
-        Page<Post> postsPage = postRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+        List<UUID> visibleGroupIds = groupMembershipRepository.findGroupIdsByUserId(currentUser.getId());
+        if (visibleGroupIds.isEmpty()) {
+            // Avoid provider-specific behavior for an empty IN clause.
+            visibleGroupIds = List.of(new UUID(0L, 0L));
+        }
+        Page<Post> postsPage = postRepository.findVisibleByUser(
+                user, List.of(GroupType.PRIVATE, GroupType.CLOSED), visibleGroupIds, pageable);
 
         List<UUID> postIds = postsPage.getContent().stream().map(Post::getId).collect(Collectors.toList());
         Map<UUID, Long> likeCounts = bulkFetchLikeCounts(postIds);
         Map<UUID, Long> commentCounts = bulkFetchCommentCounts(postIds);
 
         List<PostResponse> content = postsPage.getContent().stream()
-                .map(post -> toResponse(post, null, null, null,
-                        likeCounts, commentCounts, Collections.emptySet(), Collections.emptySet()))
+                .map(post -> toResponse(post, currentUser.getId(), Collections.emptySet(), Collections.emptyMap(),
+                        likeCounts, commentCounts, Collections.emptySet()))
                 .collect(Collectors.toList());
 
         return PagedResponse.<PostResponse>builder()
@@ -252,9 +246,8 @@ public class PostService {
                                     Map<UUID, String> groupMemberGroupName,
                                     Map<UUID, Long> likeCounts,
                                     Map<UUID, Long> commentCounts,
-                                    Set<UUID> userLikedPostIds,
-                                    Set<UUID> userGroupIds) {
-        String explanation = resolveExplanation(post, currentUserId, friendIds, groupMemberGroupName, userGroupIds);
+                                    Set<UUID> userLikedPostIds) {
+        String explanation = resolveExplanation(post, currentUserId, friendIds, groupMemberGroupName, Collections.emptySet());
         GroupSummaryDto groupDto = post.getGroup() != null
                 ? new GroupSummaryDto(post.getGroup().getId(), post.getGroup().getName(), post.getGroup().getType())
                 : null;
@@ -273,5 +266,3 @@ public class PostService {
                 .build();
     }
 }
-
-

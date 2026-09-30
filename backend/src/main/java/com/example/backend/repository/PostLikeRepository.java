@@ -19,6 +19,10 @@ public interface PostLikeRepository extends JpaRepository<PostLike, UUID> {
 
     long countByPost(Post post);
 
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM PostLike pl WHERE pl.post = :post")
+    void deleteByPost(@Param("post") Post post);
+
     List<PostLike> findByPostOrderByCreatedAtDesc(Post post);
 
     @Query("SELECT pl.post.id, COUNT(pl) FROM PostLike pl WHERE pl.post.id IN :postIds GROUP BY pl.post.id")

@@ -4,5 +4,6 @@ public enum NotificationType {
     FRIEND_REQUEST,
     FRIEND_REQUEST_ACCEPTED,
     POST_LIKED,
-    POST_COMMENTED
+    POST_COMMENTED,
+    GROUP_INVITE
 }

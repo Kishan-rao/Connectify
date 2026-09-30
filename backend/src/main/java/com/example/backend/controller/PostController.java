@@ -9,6 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 import java.security.Principal;
 import java.util.List;
@@ -16,6 +19,7 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
+@Validated
 public class PostController {
 
     private final PostService postService;
@@ -38,17 +42,18 @@ public class PostController {
     @GetMapping("/api/feed")
     public ResponseEntity<PagedResponse<PostResponse>> getFeed(
             Principal principal,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         return ResponseEntity.ok(postService.getFeed(principal, page, size));
     }
 
     @GetMapping("/api/posts/user/{username}")
     public ResponseEntity<PagedResponse<PostResponse>> getUserPosts(
+            Principal principal,
             @PathVariable String username,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(postService.getUserPosts(username, page, size));
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+        return ResponseEntity.ok(postService.getUserPosts(principal, username, page, size));
     }
 
     // ── Likes Endpoints ───────────────────────────────────────────────────────
@@ -66,8 +71,8 @@ public class PostController {
     }
 
     @GetMapping("/api/posts/{id}/likes")
-    public ResponseEntity<List<UserSummaryDto>> getLikes(@PathVariable UUID id) {
-        return ResponseEntity.ok(postLikeService.getLikes(id));
+    public ResponseEntity<List<UserSummaryDto>> getLikes(Principal principal, @PathVariable UUID id) {
+        return ResponseEntity.ok(postLikeService.getLikes(principal, id));
     }
 
     // ── Comments Endpoints ────────────────────────────────────────────────────
@@ -85,4 +90,3 @@ public class PostController {
         return ResponseEntity.status(HttpStatus.CREATED).body(commentService.createComment(principal, id, request));
     }
 }
-

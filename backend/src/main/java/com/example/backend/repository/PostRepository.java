@@ -1,6 +1,7 @@
 package com.example.backend.repository;
 
 import com.example.backend.entity.Post;
+import com.example.backend.entity.GroupType;
 import com.example.backend.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,13 +18,22 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @EntityGraph(attributePaths = {"user", "group"})
     Page<Post> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"user", "group"})
+    @Query("SELECT p FROM Post p WHERE p.user = :user AND " +
+           "(p.group IS NULL OR p.group.type NOT IN :restrictedTypes OR p.group.id IN :visibleGroupIds) " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findVisibleByUser(@Param("user") User user,
+                                 @Param("restrictedTypes") List<GroupType> restrictedTypes,
+                                 @Param("visibleGroupIds") List<UUID> visibleGroupIds,
+                                 Pageable pageable);
+
     long countByUser(User user);
 
     @Query("SELECT p FROM Post p WHERE p.user IN :users OR p.user = :currentUser ORDER BY p.createdAt DESC")
     Page<Post> findFeed(@Param("users") List<User> users, @Param("currentUser") User currentUser, Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "group"})
-    @Query("SELECT DISTINCT p FROM Post p WHERE p.user.id IN :authorIds ORDER BY p.createdAt DESC")
+    @Query("SELECT DISTINCT p FROM Post p WHERE p.user.id IN :authorIds AND p.group IS NULL ORDER BY p.createdAt DESC")
     Page<Post> findFeedByAuthorIds(@Param("authorIds") List<UUID> authorIds, Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "group"})

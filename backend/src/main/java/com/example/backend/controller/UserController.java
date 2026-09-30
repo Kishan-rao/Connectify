@@ -6,12 +6,16 @@ import com.example.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@Validated
 public class UserController {
 
     private final UserService userService;
@@ -27,8 +31,8 @@ public class UserController {
     public ResponseEntity<com.example.backend.dto.PagedResponse<com.example.backend.dto.UserSearchResultDto>> searchUsers(
             Principal principal,
             @RequestParam(defaultValue = "") String q,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         return ResponseEntity.ok(userService.searchUsers(principal, q, page, size));
     }
@@ -39,4 +43,3 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserProfile(username));
     }
 }
-

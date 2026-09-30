@@ -8,6 +8,7 @@ import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.repository.*;
 import com.example.backend.service.CommentService;
 import com.example.backend.service.PostLikeService;
+import com.example.backend.service.PostService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,10 +29,12 @@ class PostLikeCommentTest {
 
     @Autowired PostLikeService postLikeService;
     @Autowired CommentService commentService;
+    @Autowired PostService postService;
     @Autowired UserRepository userRepository;
     @Autowired PostRepository postRepository;
     @Autowired PostLikeRepository postLikeRepository;
     @Autowired CommentRepository commentRepository;
+    @Autowired NotificationRepository notificationRepository;
     @Autowired PasswordEncoder passwordEncoder;
 
     User alice, bob, charlie;
@@ -50,7 +53,7 @@ class PostLikeCommentTest {
         postLikeService.likePost(principal(bob), post.getId());
         assertThat(postLikeService.getLikeCount(post.getId())).isEqualTo(1L);
 
-        List<UserSummaryDto> likes = postLikeService.getLikes(post.getId());
+        List<UserSummaryDto> likes = postLikeService.getLikes(principal(bob), post.getId());
         assertThat(likes).hasSize(1);
         assertThat(likes.get(0).getUsername()).isEqualTo("bob");
 
@@ -114,6 +117,26 @@ class PostLikeCommentTest {
         assertThatThrownBy(() -> commentService.deleteComment(principal(charlie), comment.getId()))
                 .isInstanceOf(AccessDeniedException.class);
         assertThat(commentRepository.findById(comment.getId())).isPresent();
+    }
+
+    @Test
+    void postOwnerCanDeletePostWithLikesCommentsAndNotifications() {
+        postLikeService.likePost(principal(bob), post.getId());
+        commentService.createComment(principal(bob), post.getId(), new CommentCreateRequest("Comment"));
+
+        postService.deletePost(principal(alice), post.getId());
+
+        assertThat(postRepository.findById(post.getId())).isEmpty();
+        assertThat(postLikeRepository.findAll()).isEmpty();
+        assertThat(commentRepository.findAll()).isEmpty();
+        assertThat(notificationRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void nonAuthorCannotDeletePost() {
+        assertThatThrownBy(() -> postService.deletePost(principal(bob), post.getId()))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThat(postRepository.findById(post.getId())).isPresent();
     }
 
     private User saveUser(String username) {

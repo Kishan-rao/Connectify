@@ -72,10 +72,13 @@ public class PostLikeService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserSummaryDto> getLikes(UUID postId) {
+    public List<UserSummaryDto> getLikes(Principal principal, UUID postId) {
+        User user = userService.resolveUser(principal.getName());
         UUID requiredPostId = Objects.requireNonNull(postId, "postId must not be null");
         Post post = postRepository.findById(requiredPostId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + requiredPostId));
+
+        validateGroupPostAccess(user, post);
 
         return postLikeRepository.findByPostOrderByCreatedAtDesc(post).stream()
                 .map(pl -> new UserSummaryDto(pl.getUser().getId(), pl.getUser().getUsername()))

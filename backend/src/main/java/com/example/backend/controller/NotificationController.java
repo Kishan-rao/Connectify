@@ -6,6 +6,9 @@ import com.example.backend.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 import java.security.Principal;
 import java.util.Map;
@@ -14,6 +17,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
+@Validated
 public class NotificationController {
 
     private final NotificationService notificationService;
@@ -21,8 +25,8 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<PagedResponse<NotificationResponse>> getNotifications(
             Principal principal,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         return ResponseEntity.ok(notificationService.getMyNotifications(principal, page, size));
     }

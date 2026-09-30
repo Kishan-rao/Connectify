@@ -1,6 +1,7 @@
 package com.example.backend.repository;
 
 import com.example.backend.entity.Notification;
+import com.example.backend.entity.Post;
 import com.example.backend.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,10 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     Page<Notification> findByRecipientOrderByCreatedAtDesc(User recipient, Pageable pageable);
 
     long countByRecipientAndReadFalse(User recipient);
+
+    @Modifying
+    @Query("DELETE FROM Notification n WHERE n.post = :post")
+    void deleteByPost(@Param("post") Post post);
 
     @Modifying
     @Query("UPDATE Notification n SET n.read = true WHERE n.recipient = :recipient AND n.read = false")

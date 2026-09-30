@@ -2,16 +2,21 @@ package com.example.backend.service;
 
 import com.example.backend.dto.*;
 import com.example.backend.entity.Group;
+import com.example.backend.entity.GroupInvitation;
 import com.example.backend.entity.GroupMembership;
 import com.example.backend.entity.GroupType;
+import com.example.backend.entity.InvitationStatus;
+import com.example.backend.entity.NotificationType;
 import com.example.backend.entity.Post;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.repository.CommentRepository;
+import com.example.backend.repository.GroupInvitationRepository;
 import com.example.backend.repository.GroupMembershipRepository;
 import com.example.backend.repository.GroupRepository;
 import com.example.backend.repository.PostLikeRepository;
 import com.example.backend.repository.PostRepository;
+import com.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +41,9 @@ public class GroupService {
     private final PostLikeRepository postLikeRepository;
     private final CommentRepository commentRepository;
     private final UserService userService;
+    private final UserRepository userRepository;
+    private final GroupInvitationRepository groupInvitationRepository;
+    private final NotificationService notificationService;
 
     public GroupResponse createGroup(Principal principal, GroupCreateRequest request) {
         User user = userService.resolveUser(principal.getName());
@@ -70,26 +78,38 @@ public class GroupService {
         Group group = groupRepository.findById(requiredGroupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found: " + requiredGroupId));
 
-        long memberCount = groupMembershipRepository.countByGroup(group);
         boolean isMember = user != null && groupMembershipRepository.existsByGroupAndUser(group, user);
 
+        if (isPrivate(group) && !isMember) {
+            return toRestrictedResponse(group);
+        }
+
+        long memberCount = groupMembershipRepository.countByGroup(group);
         return toResponse(group, user, memberCount, isMember);
     }
 
     @Transactional(readOnly = true)
     public PagedResponse<GroupResponse> listGroups(Principal principal, int page, int size) {
-        User user = userService.resolveUser(principal.getName());
+        User user = principal != null ? userService.resolveUser(principal.getName()) : null;
         Pageable pageable = PageRequest.of(page, size);
         Page<Group> groupsPage = groupRepository.findByOrderByCreatedAtDesc(pageable);
 
-        List<UUID> userGroupIds = groupMembershipRepository.findGroupIdsByUserId(user.getId());
-        Set<UUID> userGroupSet = new HashSet<>(userGroupIds);
+        Set<UUID> userGroupSet = Collections.emptySet();
+        if (user != null) {
+            userGroupSet = new HashSet<>(groupMembershipRepository.findGroupIdsByUserId(user.getId()));
+        }
+
+        final Set<UUID> finalUserGroupSet = userGroupSet;
+        final User finalUser = user;
 
         List<GroupResponse> content = groupsPage.getContent().stream()
                 .map(g -> {
+                    boolean isMember = finalUserGroupSet.contains(g.getId());
+                    if (isPrivate(g) && !isMember) {
+                        return toRestrictedResponse(g);
+                    }
                     long count = groupMembershipRepository.countByGroup(g);
-                    boolean isMember = userGroupSet.contains(g.getId());
-                    return toResponse(g, user, count, isMember);
+                    return toResponse(g, finalUser, count, isMember);
                 })
                 .collect(Collectors.toList());
 
@@ -107,6 +127,10 @@ public class GroupService {
         UUID requiredGroupId = Objects.requireNonNull(groupId, "groupId must not be null");
         Group group = groupRepository.findById(requiredGroupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found: " + requiredGroupId));
+
+        if (isPrivate(group)) {
+            throw new AccessDeniedException("Private groups require an invitation to join.");
+        }
 
         if (groupMembershipRepository.existsByGroupAndUser(group, user)) {
             throw new IllegalArgumentException("You are already a member of this group.");
@@ -162,8 +186,6 @@ public class GroupService {
         Page<Post> postsPage = postRepository.findByGroupOrderByCreatedAtDesc(group, pageable);
 
         List<UUID> postIds = postsPage.getContent().stream().map(Post::getId).collect(Collectors.toList());
-
-        // Bulk load likes and comments
         Map<UUID, Long> likeCounts = bulkFetchLikeCounts(postIds);
         Map<UUID, Long> commentCounts = bulkFetchCommentCounts(postIds);
         Set<UUID> userLikedPostIds = bulkFetchUserLikes(user.getId(), postIds);
@@ -181,28 +203,127 @@ public class GroupService {
                 .build();
     }
 
+    // ── Invitation methods ────────────────────────────────────────────────────
+
+    public GroupInvitationResponse inviteUser(Principal principal, UUID groupId, GroupInviteRequest request) {
+        User inviter = userService.resolveUser(principal.getName());
+        UUID requiredGroupId = Objects.requireNonNull(groupId, "groupId must not be null");
+        Group group = groupRepository.findById(requiredGroupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found: " + requiredGroupId));
+
+        if (!groupMembershipRepository.existsByGroupAndUser(group, inviter)) {
+            throw new AccessDeniedException("You must be a member of the group to invite others.");
+        }
+
+        String inviteeUsername = Objects.requireNonNull(request.getUsername(), "username must not be null").trim();
+        User invitee = userRepository.findByUsername(inviteeUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + inviteeUsername));
+
+        if (invitee.getId().equals(inviter.getId())) {
+            throw new IllegalArgumentException("You cannot invite yourself.");
+        }
+
+        if (groupMembershipRepository.existsByGroupAndUser(group, invitee)) {
+            throw new IllegalArgumentException("User is already a member of this group.");
+        }
+
+        if (groupInvitationRepository.existsByGroupAndInviteeAndStatus(group, invitee, InvitationStatus.PENDING)) {
+            throw new IllegalArgumentException("A pending invitation already exists for this user.");
+        }
+
+        GroupInvitation invitation = GroupInvitation.builder()
+                .group(group)
+                .inviter(inviter)
+                .invitee(invitee)
+                .status(InvitationStatus.PENDING)
+                .build();
+        GroupInvitation saved = groupInvitationRepository.save(invitation);
+
+        notificationService.createNotification(
+                invitee, inviter, NotificationType.GROUP_INVITE, null, null,
+                "@" + inviter.getUsername() + " invited you to join " + group.getName() + ".");
+
+        return toInvitationResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupInvitationResponse> getMyPendingInvitations(Principal principal) {
+        User user = userService.resolveUser(principal.getName());
+        return groupInvitationRepository.findByInviteeAndStatusOrderByCreatedAtDesc(user, InvitationStatus.PENDING)
+                .stream()
+                .map(this::toInvitationResponse)
+                .collect(Collectors.toList());
+    }
+
+    public void acceptInvitation(Principal principal, UUID invitationId) {
+        User user = userService.resolveUser(principal.getName());
+        UUID requiredId = Objects.requireNonNull(invitationId, "invitationId must not be null");
+        GroupInvitation invitation = groupInvitationRepository.findById(requiredId)
+                .orElseThrow(() -> new ResourceNotFoundException("Invitation not found: " + requiredId));
+
+        if (!invitation.getInvitee().getId().equals(user.getId())) {
+            throw new AccessDeniedException("You can only accept your own invitations.");
+        }
+
+        if (invitation.getStatus() != InvitationStatus.PENDING) {
+            throw new IllegalArgumentException("Invitation is no longer pending.");
+        }
+
+        invitation.setStatus(InvitationStatus.ACCEPTED);
+        groupInvitationRepository.save(invitation);
+
+        // Idempotent: only create membership if not already a member
+        if (!groupMembershipRepository.existsByGroupAndUser(invitation.getGroup(), user)) {
+            GroupMembership membership = GroupMembership.builder()
+                    .group(invitation.getGroup())
+                    .user(user)
+                    .build();
+            groupMembershipRepository.save(membership);
+        }
+    }
+
+    public void declineInvitation(Principal principal, UUID invitationId) {
+        User user = userService.resolveUser(principal.getName());
+        UUID requiredId = Objects.requireNonNull(invitationId, "invitationId must not be null");
+        GroupInvitation invitation = groupInvitationRepository.findById(requiredId)
+                .orElseThrow(() -> new ResourceNotFoundException("Invitation not found: " + requiredId));
+
+        if (!invitation.getInvitee().getId().equals(user.getId())) {
+            throw new AccessDeniedException("You can only decline your own invitations.");
+        }
+
+        if (invitation.getStatus() != InvitationStatus.PENDING) {
+            throw new IllegalArgumentException("Invitation is no longer pending.");
+        }
+
+        invitation.setStatus(InvitationStatus.DECLINED);
+        groupInvitationRepository.save(invitation);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
     private boolean isPrivate(Group group) {
         return group.getType() == GroupType.PRIVATE || group.getType() == GroupType.CLOSED;
     }
 
-    private Map<UUID, Long> bulkFetchLikeCounts(List<UUID> postIds) {
-        if (postIds.isEmpty()) return Collections.emptyMap();
-        return postLikeRepository.countLikesByPostIds(postIds).stream()
-                .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
+    /**
+     * Returns a minimal GroupResponse for non-members viewing a PRIVATE/CLOSED group.
+     * Exposes only id, name, and type; description and other metadata are null.
+     */
+    private GroupResponse toRestrictedResponse(Group g) {
+        return GroupResponse.builder()
+                .id(g.getId())
+                .name(g.getName())
+                .type(g.getType())
+                .description(null)
+                .createdBy(null)
+                .memberCount(null)
+                .isMember(false)
+                .createdAt(null)
+                .build();
     }
 
-    private Map<UUID, Long> bulkFetchCommentCounts(List<UUID> postIds) {
-        if (postIds.isEmpty()) return Collections.emptyMap();
-        return commentRepository.countCommentsByPostIds(postIds).stream()
-                .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
-    }
-
-    private Set<UUID> bulkFetchUserLikes(UUID userId, List<UUID> postIds) {
-        if (postIds.isEmpty()) return Collections.emptySet();
-        return new HashSet<>(postLikeRepository.findLikedPostIdsByUserIdAndPostIds(userId, postIds));
-    }
-
-    private GroupResponse toResponse(Group g, User currentUser, long memberCount, boolean isMember) {
+    private GroupResponse toResponse(Group g, User currentUser, Long memberCount, boolean isMember) {
         UserSummaryDto creatorDto = g.getCreatedBy() != null
                 ? new UserSummaryDto(g.getCreatedBy().getId(), g.getCreatedBy().getUsername())
                 : null;
@@ -215,6 +336,18 @@ public class GroupService {
                 .memberCount(memberCount)
                 .isMember(isMember)
                 .createdAt(g.getCreatedAt())
+                .build();
+    }
+
+    private GroupInvitationResponse toInvitationResponse(GroupInvitation inv) {
+        return GroupInvitationResponse.builder()
+                .id(inv.getId())
+                .groupId(inv.getGroup().getId())
+                .groupName(inv.getGroup().getName())
+                .groupType(inv.getGroup().getType())
+                .inviter(new UserSummaryDto(inv.getInviter().getId(), inv.getInviter().getUsername()))
+                .status(inv.getStatus())
+                .createdAt(inv.getCreatedAt())
                 .build();
     }
 
@@ -237,5 +370,22 @@ public class GroupService {
                 .likedByCurrentUser(userLikedPostIds.contains(post.getId()))
                 .group(groupDto)
                 .build();
+    }
+
+    private Map<UUID, Long> bulkFetchLikeCounts(List<UUID> postIds) {
+        if (postIds.isEmpty()) return Collections.emptyMap();
+        return postLikeRepository.countLikesByPostIds(postIds).stream()
+                .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
+    }
+
+    private Map<UUID, Long> bulkFetchCommentCounts(List<UUID> postIds) {
+        if (postIds.isEmpty()) return Collections.emptyMap();
+        return commentRepository.countCommentsByPostIds(postIds).stream()
+                .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
+    }
+
+    private Set<UUID> bulkFetchUserLikes(UUID userId, List<UUID> postIds) {
+        if (postIds.isEmpty()) return Collections.emptySet();
+        return new HashSet<>(postLikeRepository.findLikedPostIdsByUserIdAndPostIds(userId, postIds));
     }
 }

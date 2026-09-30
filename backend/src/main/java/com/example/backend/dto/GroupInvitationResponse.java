@@ -1,6 +1,7 @@
 package com.example.backend.dto;
 
 import com.example.backend.entity.GroupType;
+import com.example.backend.entity.InvitationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,13 +14,12 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class GroupResponse {
+public class GroupInvitationResponse {
     private UUID id;
-    private String name;
-    private String description;
-    private GroupType type;
-    private UserSummaryDto createdBy;
-    private Long memberCount;
-    private boolean isMember;
+    private UUID groupId;
+    private String groupName;
+    private GroupType groupType;
+    private UserSummaryDto inviter;
+    private InvitationStatus status;
     private LocalDateTime createdAt;
 }
